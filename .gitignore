@@ -1,0 +1,32 @@
+# Unity generated content
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+/[Mm]emoryCaptures/
+/[Bb]uild/
+/[Bb]uilds/
+
+# IDE-generated files
+/.vs/
+/.idea/
+/*.csproj
+/*.sln
+/*.slnx
+/*.user
+/*.unityproj
+/*.pidb
+/*.booproj
+/*.svd
+/*.pdb
+/*.opendb
+/*.VC.db
+
+# Unity diagnostics and crash dumps
+/sysinfo.txt
+/crashlytics-build.properties
+
+# OS files
+.DS_Store
+Thumbs.db

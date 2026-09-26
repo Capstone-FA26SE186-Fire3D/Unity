@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "name": "unity-ecs-patterns",
+  "owner": "wshobson",
+  "repo": "agents",
+  "path": "plugins/game-development/skills/unity-ecs-patterns",
+  "branch": "main",
+  "sha": "2907e59378b0c0a369d029e1588c1be2397f8bfc",
+  "source": "manual"
+}
+
