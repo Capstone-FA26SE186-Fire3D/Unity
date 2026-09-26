@@ -11,7 +11,7 @@ Repo hiện có scaffold folder, README và hai assembly Runtime/Editor. Chưa c
 - Editor theo [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt): Unity 6000.6.3f1. Giữ phiên bản này trong đợt scaffold; Docs đang ghi Unity 6 LTS, cần thống nhất toolchain trước triển khai runtime.
 - Android Build Support gồm Android SDK/NDK và OpenJDK khi build Android.
 - Git LFS cho binary assets theo .gitattributes.
-- [manifest.json](Packages/manifest.json) hiện chưa có Entities, Burst, URP, Addressables hoặc Test Framework. Chọn phiên bản tương thích Editor khi triển khai dependencies; cài skill không cài Unity package.
+- [manifest.json](Packages/manifest.json) đã khai báo URP `17.5.0`, tương thích với Unity 6000.6.3f1. Unity Package Manager sẽ bổ sung dependency vào `packages-lock.json` khi mở project. Entities, Burst, Addressables và Test Framework vẫn chưa cài. Tạo URP Pipeline Asset và gán vào Graphics/Quality Settings là bước Editor tiếp theo.
 
 ## Cấu trúc
 

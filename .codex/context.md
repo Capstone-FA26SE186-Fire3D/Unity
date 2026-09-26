@@ -17,7 +17,7 @@
 
 ## Lựa chọn kỹ thuật
 
-- Editor hiện là 6000.6.3f1; Docs đang ghi Unity 6 LTS, cần thống nhất toolchain khi triển khai dependencies. URP + Addressables là hướng thiết kế; manifest chưa có URP, Addressables, Entities, Burst hoặc Test Framework. Scaffold giữ nguyên Packages/ProjectSettings.
+- Editor hiện là 6000.6.3f1; Docs đang ghi Unity 6 LTS. Manifest đã khai báo URP 17.5.0; mở project bằng Unity Editor sẽ resolve và ghi dependency vào packages-lock.json, sau đó cần tạo/gán URP Pipeline Asset trong Graphics/Quality Settings. Addressables, Entities, Burst và Test Framework chưa cài. Scaffold giữ nguyên Packages/ProjectSettings.
 - Người dùng đã chọn ECS từ đầu cho hazard/NPC, dùng Jobs/Burst khi tương thích. GameObject/MonoBehaviour giữ player, camera 2.5D, interactions, UI và bridge. ECS sở hữu trạng thái hazard/NPC/cửa; gameplay gửi command tại tick, presentation đọc snapshot sau jobs. Đo hiệu năng và bộ nhớ Android khi có representative content.
 - Authoring chứa cấu hình và baker; Editor chứa inspector và content pipeline. Hiện chỉ giữ hai assembly Runtime/Editor; ranh giới assembly dự kiến và acceptance scenarios ở README. Chưa thêm Components/Systems/Jobs rỗng hoặc class giả.
 - API contract, auth, launch grant, telemetry/event sequence và package contract thuộc .NET/Docs; Unity bọc chúng bằng adapter rõ ràng, không nhân bản business authorization tại client.
