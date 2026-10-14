@@ -4,7 +4,7 @@ Runtime Android cho tập huấn sơ tán FET3D: IFC → 3D → Unity Android �
 
 ## Trạng thái
 
-Repo hiện có scaffold folder, README và hai assembly Runtime/Editor. Chưa có gameplay, scene, Android bridge hoặc content pipeline thực thi. Hướng đã chọn: **ECS từ đầu cho hazard/NPC**, GameObject/MonoBehaviour cho player, camera 2.5D, tương tác và UI.
+Repo hiện có scaffold folder, README và hai assembly Runtime/Editor. Chưa có gameplay, scene, Android bridge hoặc content pipeline thực thi. Hướng đã chọn: **ECS từ đầu cho hazard/NPC**, GameObject/MonoBehaviour cho player, camera góc nhìn thứ ba, tương tác và UI.
 
 ## Môi trường
 
