@@ -1,3 +1,3 @@
 # Runtime/Gameplay/Camera
 
-Camera cố định 2.5D, theo dõi người chơi, chuyển tầng và xử lý che khuất. Camera không sở hữu trạng thái scenario hoặc quyền session.
+Camera góc nhìn thứ ba bám theo người chơi, hỗ trợ orbit/zoom có giới hạn, chuyển tầng và xử lý che khuất. Camera không sở hữu trạng thái scenario hoặc quyền session.
