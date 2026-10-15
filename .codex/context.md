@@ -45,3 +45,16 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 - [AI context](../../AI/.codex/context.md) khi sửa IFC/worker contract
 
 Thiết kế Docs có thể đi trước implementation. Không tuyên bố pipeline IFC/Unity, Android bridge, package validation, session offline sync hay ECS đã hoàn thành nếu chưa có kiểm thử tương ứng.
+
+## IFC ingestion, hiển thị và tương tác — 2026-10-15
+
+Nguồn: [IFC ingestion, hiển thị và tương tác](../../Docs/ifc_ingestion_visual_interaction.md) (Docs PR #15/#16). Đây là **đề xuất thiết kế** có bằng chứng spike cục bộ trên 32 file IFC công khai; chưa có worker, API, migration hay code Unity tương ứng. Mục 4 (nhiều IFC cho một revision), ngân sách tam giác và preset vật liệu còn chờ team chốt.
+
+Quy tắc chung đã chốt với nhóm: chỉ nhận IFC (RVT tự xuất IFC ở ngoài); **IFC có thiết bị PCCC/nguồn nước thì pipeline tự tạo, không có thì OrganizationUser đặt trong editor**; mô hình 3D thiết bị luôn lấy từ thư viện dùng chung (có thể tạo bằng công cụ AI như Tripo rồi dọn lưới), không lấy từ IFC; IFC hầu như không mang màu/texture dùng được nên vật liệu lấy từ thư viện PBR CC0 theo preset.
+
+Phụ trách: Phạm Gia Bảo (Unity). Việc liên quan repo này:
+
+- Runtime: `Interactable`, `InteractionDetector`, `ActionBar` theo luật tương tác ngữ cảnh ở mục 7 (gần vật + vật đang cầm + trạng thái, tối đa 3 nút, nút giữ, bẫy vẫn hiện nút, Guided khác Assessment); HUD người chơi và biểu tượng trạng thái NPC ở mục 8.
+- Catalog đợt 1 (mục 6.1) và sprinkler tự động (mục 6.3); hiệu ứng là tham số từ `ScenarioVersion`, không hard-code tác dụng an toàn. Hazard/sprinkler thuộc ECS, tương tác thuộc MonoBehaviour như ranh giới hiện có.
+- Đọc `building_metadata.json` (mục 5.7) để gắn component theo `catalogKey` và `ifcGlobalId`.
+- Unity build worker (`Editor/ContentPipeline`): import GLB có UV0 box theo mét và UV1 lightmap, URP Lit từ thư viện PBR, bake lightmap/light probe/reflection probe, preset ánh sáng ban ngày/mất điện/khói (mục 5.6), package theo tầng, ngân sách khởi điểm ≤150k tam giác hiển thị phải đo lại trên Android tầm trung.
