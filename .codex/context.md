@@ -23,7 +23,7 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 
 - FET3D tập huấn sơ tán theo luồng `IFC → 3D → Unity Android → QR → Training → Result`.
 - Unity là gameplay runtime. Mobile React Native/Expo nhận quyền/session/package qua .NET API rồi mở Unity bằng native Android bridge; Three.js chỉ dành cho landing/editor/preview web.
-- Hướng trải nghiệm là BIM 3D, camera cố định 2.5D. Mô phỏng phục vụ tập huấn, không phải chứng nhận PCCC hay chỉ dẫn khẩn cấp thực tế.
+- Hướng trải nghiệm là BIM 3D với camera góc nhìn thứ ba (third-person) bám theo nhân vật, orbit/zoom có giới hạn và xử lý va chạm/che khuất theo [Docs technology mục 1.2](../../Docs/fire-evacuation-training-technology.md#12-gameplay-third-person-và-biểu-diễn-bim). Giữ cấu trúc, kích thước và định danh IFC; không di chuyển tường để camera vừa. Mô phỏng phục vụ tập huấn, không phải chứng nhận PCCC hay chỉ dẫn khẩn cấp thực tế.
 - Unity không trực tiếp gọi PostgreSQL, Redis, S3 bằng credential hay AI service. Backend xác minh identity, Building access, entitlement, learner seat, scenario approval/publish và package/runtime compatibility rồi cấp launch grant sau explicit online start; QR không cấp quyền.
 - Mobile sở hữu tải/verify/cache artifact qua signed URL, gọi API và durable queue sync. Unity nhận manifestPath/grant qua bridge, kiểm tra khả năng tiếp nhận và nạp package local, trả event/result/lỗi. Session đã start có thể tiếp tục offline và Mobile sync idempotent sau đó; session mới không được tự start offline.
 - Worker IFC/Blender và Unity Editor build chạy ngoài client, claim/lease qua backend, đăng ký artifact/validation provenance rồi backend mới publish. Worker không tự ghi billing, entitlement hoặc publish.
@@ -31,7 +31,7 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 ## Lựa chọn kỹ thuật
 
 - Editor hiện là 6000.6.3f1; Docs đang ghi Unity 6 LTS. Manifest đã khai báo URP 17.5.0; mở project bằng Unity Editor sẽ resolve và ghi dependency vào packages-lock.json, sau đó cần tạo/gán URP Pipeline Asset trong Graphics/Quality Settings. Addressables, Entities, Burst và Test Framework chưa cài. Scaffold giữ nguyên Packages/ProjectSettings.
-- Người dùng đã chọn ECS từ đầu cho hazard/NPC, dùng Jobs/Burst khi tương thích. GameObject/MonoBehaviour giữ player, camera 2.5D, interactions, UI và bridge. ECS sở hữu trạng thái hazard/NPC/cửa; gameplay gửi command tại tick, presentation đọc snapshot sau jobs. Đo hiệu năng và bộ nhớ Android khi có representative content.
+- Người dùng đã chọn ECS từ đầu cho hazard/NPC, dùng Jobs/Burst khi tương thích. GameObject/MonoBehaviour giữ player, camera third-person, interactions, UI và bridge. ECS sở hữu trạng thái hazard/NPC/cửa; gameplay gửi command tại tick, presentation đọc snapshot sau jobs. Đo hiệu năng và bộ nhớ Android khi có representative content.
 - Authoring chứa cấu hình và baker; Editor chứa inspector và content pipeline. Hiện chỉ giữ hai assembly Runtime/Editor; ranh giới assembly dự kiến và acceptance scenarios ở README. Chưa thêm Components/Systems/Jobs rỗng hoặc class giả.
 - API contract, auth, launch grant, telemetry/event sequence và package contract thuộc .NET/Docs; Unity bọc chúng bằng adapter rõ ràng, không nhân bản business authorization tại client.
 - Không hard-code endpoint production, API key hoặc thông tin cá nhân. Cấu hình theo environment, secret injection/build pipeline đã được duyệt.
