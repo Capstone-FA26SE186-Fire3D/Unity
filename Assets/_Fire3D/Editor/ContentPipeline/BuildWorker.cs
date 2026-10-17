@@ -18,7 +18,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
     /// <code>
     /// unity run &lt;project&gt; -- -executeMethod Fire3D.Unity.Editor.ContentPipeline.BuildWorker.Run
     ///   -fet3dInput &lt;dir&gt; -fet3dOutput &lt;dir&gt; [-fet3dTarget Android|StandaloneWindows64] [-fet3dGpu] [-fet3dJob &lt;id&gt;]
+    ///   [-fet3dNoBake] [-fet3dResult &lt;file&gt;]
     /// </code>
+    /// <c>-fet3dResult</c> writes a JSON summary (<see cref="Summary"/>) the worker agent (Tools/PackageWorker) reads after
+    /// the Editor exits; the manifest is checked with <see cref="PackageManifestFactory.Validate"/> before success is reported.
     /// Input dir: <c>building_metadata.json</c> (fet3d.building/1), <c>scenario.json</c> (fet3d.editor/1) and GLB
     /// geometry (one per storey via <c>storeys[].chunk</c>, or a single <c>building.glb</c>). Node names are IFC
     /// GlobalIds; material names map to <c>libraryKey</c> through <c>materials</c>. Output: per-floor scene bundles,
@@ -38,6 +41,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
 
             var code = 0;
+            var summary = new Summary();
+            var resultPath = Arg("-fet3dResult");
             try
             {
                 var result = Build(new Request
@@ -49,6 +54,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                     UseGpu = Array.IndexOf(args, "-fet3dGpu") >= 0,
                     Bake = Array.IndexOf(args, "-fet3dNoBake") < 0,
                 });
+                summary.Ok = true;
+                summary.ManifestPath = result.ManifestPath;
+                summary.Floors = result.Floors;
+                summary.Warnings.AddRange(result.Warnings);
                 Debug.Log($"[Fire3D worker] OK {result.ManifestPath} ({result.Floors} floors, {result.Warnings.Count} warnings)");
                 foreach (var w in result.Warnings)
                     Debug.LogWarning($"[Fire3D worker] {w}");
@@ -56,7 +65,24 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             catch (Exception ex)
             {
                 Debug.LogError($"[Fire3D worker] FAILED: {ex}");
+                summary.Error = ex.Message;
+                if (ex is ManifestInvalidException mi)
+                    summary.Issues.AddRange(mi.Issues);
                 code = 1;
+            }
+
+            if (!string.IsNullOrEmpty(resultPath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(resultPath))!);
+                    File.WriteAllText(resultPath, JsonConvert.SerializeObject(summary, Formatting.Indented, ContractJson.Settings));
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[Fire3D worker] cannot write result file {resultPath}: {ex.Message}");
+                    code = 1;
+                }
             }
 
             if (Application.isBatchMode)
@@ -80,12 +106,30 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             public readonly List<string> Warnings = new();
         }
 
+        /// <summary>Machine-readable outcome written to <c>-fet3dResult</c>.</summary>
+        public sealed class Summary
+        {
+            [JsonProperty("ok")] public bool Ok;
+            [JsonProperty("manifestPath")] public string ManifestPath;
+            [JsonProperty("floors")] public int Floors;
+            [JsonProperty("warnings")] public List<string> Warnings = new();
+            /// <summary>Manifest validation problems ("path: message"), reported to the backend as issues.</summary>
+            [JsonProperty("issues")] public List<string> Issues = new();
+            [JsonProperty("error")] public string Error;
+        }
+
+        public sealed class ManifestInvalidException : Exception
+        {
+            public readonly List<string> Issues;
+            public ManifestInvalidException(List<string> issues) : base("manifest.json failed validation: " + string.Join("; ", issues)) => Issues = issues;
+        }
+
         public static Result Build(Request req)
         {
             var result = new Result();
             var building = ContractJson.ReadBuilding(File.ReadAllText(Path.Combine(req.InputDir, "building_metadata.json")));
             var scenarioJson = File.ReadAllText(Path.Combine(req.InputDir, "scenario.json"));
-            ContractJson.ReadScenario(scenarioJson); // Validate before spending time on import and bake.
+            var scenario = ContractJson.ReadScenario(scenarioJson); // Validate before spending time on import and bake.
             var library = MaterialLibraryBuilder.Build();
 
             var work = $"{WorkRoot}/{Sanitize(req.JobId)}";
@@ -158,18 +202,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             {
                 new() { assetBundleName = ContentLoader.MaterialLibraryBundle, assetNames = LibraryAssets() },
             };
-            var manifest = new ContentManifest
-            {
-                SchemaVersion = ContentManifest.Schema,
-                RuntimeVersion = RuntimeCatalog.RuntimeVersion,
-                BuildTarget = req.Target.ToString(),
-                UnityVersion = Application.unityVersion,
-                MaterialLibraryVersion = library.Version,
-                RevisionId = building.RevisionId,
-                Metadata = "building_metadata.json",
-                Scenario = "scenario.json",
-                LightingScenarios = req.Bake ? new List<string> { LightingScenarioSwitcher.Normal, LightingScenarioSwitcher.Outage } : new List<string>(),
-            };
+            var manifest = PackageManifestFactory.Create(scenario, building, req.JobId, req.Target.ToString(), Application.unityVersion,
+                library.Version, req.Bake);
             foreach (var (storey, path) in scenePaths)
             {
                 var floorBundle = $"floor_{Sanitize(storey.FloorId).ToLowerInvariant()}";
@@ -188,7 +222,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
                 manifest.Floors.Add(new ManifestFloor
                 {
-                    FloorId = storey.FloorId, Bundle = floorBundle, LightingBundle = lightingBundle,
+                    Id = storey.FloorId, Bundle = floorBundle, LightingBundle = lightingBundle,
                     Scene = Path.GetFileNameWithoutExtension(path), Elevation = storey.Elevation,
                 });
             }
@@ -205,15 +239,13 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 File.Copy(Path.Combine(bundleOut, b), Path.Combine(req.OutputDir, b), true);
             File.Copy(Path.Combine(req.InputDir, "building_metadata.json"), Path.Combine(req.OutputDir, "building_metadata.json"), true);
             File.WriteAllText(Path.Combine(req.OutputDir, "scenario.json"), scenarioJson);
-            foreach (var file in Directory.GetFiles(req.OutputDir).Where(f => Path.GetFileName(f) != "manifest.json").OrderBy(f => f))
-            {
-                manifest.Files.Add(new ManifestFile
-                {
-                    Path = Path.GetFileName(file), Sha256 = ContentLoader.Sha256(file), Size = new FileInfo(file).Length,
-                });
-            }
+            PackageManifestFactory.AddFiles(manifest, req.OutputDir);
 
-            result.ManifestPath = Path.Combine(req.OutputDir, "manifest.json");
+            var issues = PackageManifestFactory.Validate(manifest);
+            if (issues.Count > 0)
+                throw new ManifestInvalidException(issues);
+
+            result.ManifestPath = Path.Combine(req.OutputDir, ContentManifest.FileName);
             File.WriteAllText(result.ManifestPath, JsonConvert.SerializeObject(manifest, Formatting.Indented, ContractJson.Settings));
             result.Floors = manifest.Floors.Count;
             return result;
