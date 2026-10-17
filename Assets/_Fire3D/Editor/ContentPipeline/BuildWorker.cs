@@ -139,12 +139,13 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
             // 1) Import GLB geometry (glTFast ScriptedImporter).
             var floors = building.Storeys.OrderBy(s => s.Elevation).ToList();
-            var chunks = new List<(StoreyInfo storey, string asset)>();
+            // (storey, imported asset, name of the top-level node to keep when one GLB holds several storeys)
+            var chunks = new List<(StoreyInfo storey, string asset, string keepNode)>();
             foreach (var s in floors)
             {
                 var src = !string.IsNullOrEmpty(s.Chunk) ? Path.Combine(req.InputDir, s.Chunk) : null;
                 if (src != null && File.Exists(src))
-                    chunks.Add((s, CopyIn(src, work)));
+                    chunks.Add((s, CopyIn(src, work), null));
             }
 
             if (chunks.Count == 0)
@@ -152,10 +153,23 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 var single = Path.Combine(req.InputDir, "building.glb");
                 if (!File.Exists(single))
                     throw new FileNotFoundException("No storey chunks and no building.glb in input.", single);
-                var first = floors.FirstOrDefault() ?? new StoreyInfo { Id = "L1", Elevation = 0f };
-                chunks.Add((first, CopyIn(single, work)));
-                if (floors.Count > 1)
-                    result.Warnings.Add("Single building.glb: all storeys go into one scene bundle.");
+                var asset = CopyIn(single, work);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(asset)
+                             ?? throw new InvalidOperationException($"glTFast did not import {asset}");
+                var split = floors.Count > 1 ? StoreyNodes(prefab.transform, floors) : null;
+                if (split != null)
+                {
+                    foreach (var s in floors)
+                        chunks.Add((s, asset, split[s]));
+                }
+                else
+                {
+                    var first = floors.FirstOrDefault() ?? new StoreyInfo { Id = "L1", Elevation = 0f };
+                    chunks.Add((first, asset, null));
+                    if (floors.Count > 1)
+                        result.Warnings.Add("Single building.glb without one top-level node per storey: all storeys go into one scene bundle.");
+                }
             }
 
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
@@ -164,7 +178,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var scenes = new List<Scene>();
             var scenePaths = new List<(StoreyInfo storey, string path)>();
             var first_ = true;
-            foreach (var (storey, asset) in chunks)
+            foreach (var (storey, asset, keepNode) in chunks)
             {
                 var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, first_ ? NewSceneMode.Single : NewSceneMode.Additive);
                 first_ = false;
@@ -173,6 +187,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                              ?? throw new InvalidOperationException($"glTFast did not import {asset}");
                 var root = (GameObject)PrefabUtility.InstantiatePrefab(prefab, scene);
                 PrefabUtility.UnpackPrefabInstance(root, PrefabUnpackMode.Completely, InteractionMode.AutomatedAction);
+                if (keepNode != null)
+                    KeepOnly(root.transform, keepNode);
                 root.name = $"Building_{storey.FloorId}";
                 var br = root.AddComponent<BuildingRoot>();
                 br.FloorId = storey.FloorId;
@@ -249,6 +265,37 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             File.WriteAllText(result.ManifestPath, JsonConvert.SerializeObject(manifest, Formatting.Indented, ContractJson.Settings));
             result.Floors = manifest.Floors.Count;
             return result;
+        }
+
+        /// <summary>
+        /// One GLB for the whole building: when every storey has a top-level node named after its id, name or IFC GlobalId,
+        /// each storey gets its own scene bundle. Returns null when the nodes are not there.
+        /// </summary>
+        private static Dictionary<StoreyInfo, string> StoreyNodes(Transform prefabRoot, List<StoreyInfo> floors)
+        {
+            var children = new HashSet<string>(StringComparer.Ordinal);
+            foreach (Transform child in prefabRoot)
+                children.Add(child.name);
+            var map = new Dictionary<StoreyInfo, string>();
+            foreach (var s in floors)
+            {
+                var node = new[] { s.Id, s.Name, s.IfcGlobalId }.FirstOrDefault(n => n != null && children.Contains(n));
+                if (node == null || map.ContainsValue(node))
+                    return null;
+                map[s] = node;
+            }
+
+            return map;
+        }
+
+        private static void KeepOnly(Transform root, string keepNode)
+        {
+            for (var i = root.childCount - 1; i >= 0; i--)
+            {
+                var child = root.GetChild(i);
+                if (child.name != keepNode)
+                    UnityEngine.Object.DestroyImmediate(child.gameObject);
+            }
         }
 
         private static string CopyIn(string src, string work)

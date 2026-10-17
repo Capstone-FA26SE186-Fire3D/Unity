@@ -4,7 +4,7 @@ Runtime Android cho tập huấn sơ tán FET3D: IFC → 3D → Unity Android �
 
 ## Trạng thái
 
-Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và NPC bằng **Entities**, camera third-person có xử lý va chạm, tương tác theo ngữ cảnh (tối đa 3 nút, nút giữ, bẫy), HUD, phiên tập huấn với telemetry đúng shape backend, bridge Mobile, nạp gói AssetBundle có ánh sáng bake và worker build trên server. Chưa nghiệm thu trên thiết bị Android thật và chưa chạy worker với GLB thật từ Blender worker.
+Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và NPC bằng **Entities**, camera third-person có xử lý va chạm, tương tác theo ngữ cảnh (tối đa 3 nút, nút giữ, bẫy), HUD, phiên tập huấn với telemetry đúng shape backend, bridge Mobile, nạp gói AssetBundle có ánh sáng bake, worker build trên server và agent pull-mode cho VM (đã chạy end-to-end với fake backend). Chưa nghiệm thu trên thiết bị Android thật, chưa chạy agent trên VM với BE thật và chưa có GLB thật từ Blender worker.
 
 ## Môi trường
 
@@ -20,9 +20,11 @@ Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và N
 | Test | `unity test . --mode EditMode` và `unity test . --mode PlayMode` |
 | APK demo (không cần Mobile) | Menu `Fire3D/Build/Demo APK` hoặc `-executeMethod Fire3D.Unity.Editor.AndroidExport.AndroidBuilder.BuildDemoApk` |
 | Export cho Mobile (Unity as a Library) | `Fire3D/Build/Export Unity Library for Mobile` → `Builds/AndroidLibrary` |
-| Worker trên server | `unity run <project> -- -executeMethod Fire3D.Unity.Editor.ContentPipeline.BuildWorker.Run -fet3dInput <dir> -fet3dOutput <dir> [-fet3dTarget Android] [-fet3dGpu]` |
+| Worker build một gói (tay) | `Unity.exe -batchmode -projectPath <project> -executeMethod Fire3D.Unity.Editor.ContentPipeline.BuildWorker.Run -fet3dInput <dir> -fet3dOutput <dir> [-fet3dTarget Android] [-fet3dGpu] [-fet3dNoBake] [-fet3dResult <file>]` |
+| Agent worker trên VM (pull từ BE) | [Tools/PackageWorker](Tools/PackageWorker/README.md): `Install-PackageWorker.ps1` cài một lần, `Fire3DPackageWorker.ps1` chạy vòng lặp lease → build → upload → complete |
+| Test agent end-to-end trên máy dev | `powershell -File Tools\PackageWorker\Test\Run-LocalTest.ps1 [-Bake -BuildTarget Android]` (export graybox làm input + fake backend) |
 
-**Đầu vào worker:** `building_metadata.json` (`fet3d.building/1`), `scenario.json` (`fet3d.editor/1`) và GLB (mỗi tầng theo `storeys[].chunk`, hoặc một `building.glb`). Tên node = IFC GlobalId, tên material ánh xạ sang `libraryKey` qua `materials`. **Đầu ra:** `floor_<id>` (scene bundle), `floor_<id>_lighting` (bộ ánh sáng mất điện), tài liệu JSON và `manifest.json` (`fet3d.package/1`, SHA-256 từng file).
+**Đầu vào worker:** `building_metadata.json` (`fet3d.building/1`), `scenario.json` (`fet3d.editor/1`) và GLB (mỗi tầng theo `storeys[].chunk`, hoặc một `building.glb`; nếu GLB có một node cấp cao mỗi tầng tên theo `id`/`name`/`ifcGlobalId` của storey thì vẫn tách bundle theo tầng). Tên node = IFC GlobalId, tên material ánh xạ sang `libraryKey` qua `materials`. **Đầu ra:** `floor_<id>` (scene bundle), `floor_<id>_lighting` (bộ ánh sáng mất điện), tài liệu JSON và `manifest.json` (`fet3d.package/1`, đúng validator BE: `jobId`, `buildTarget`, `protocolVersion`, `manifestSchemaVersion`, `runtimeVersion`, `minRuntimeVersion`, `requiredCapabilities`, `floors[].id/bundle/lightingBundle/scene`, `files[]` SHA-256; `PackageManifestFactory.Validate` chặn gói sai trước khi upload).
 
 **Bridge Mobile:** Unity nhận `UnitySendMessage("Fire3DBridge", "Launch", json)` (`LaunchRequest`, protocol 1), có thêm `Pause` và `Abort`. Unity gửi `Ready`, `Launched`, `Events` (lô ≤ 500), `Completed`, `Error`, `Exited` qua `com.fet3d.unity.Fire3DUnityBridge.onUnityMessage(String)`.
 
