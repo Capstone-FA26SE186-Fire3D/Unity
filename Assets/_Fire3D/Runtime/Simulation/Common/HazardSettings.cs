@@ -34,7 +34,7 @@ namespace Fire3D.Simulation
         public static HazardSettings Default => new()
         {
             TickSeconds = 0.1f,
-            SubSteps = 2,
+            SubSteps = 3,
             AmbientC = 26f,
             MaxFireHeatC = 650f,
             IgnitionHeatC = 140f,
@@ -46,7 +46,7 @@ namespace Fire3D.Simulation
             HeatCoolingPerSecond = 0.12f,
             FireHeatRelaxPerSecond = 1.2f,
             SmokeYieldPerSecond = 0.6f,
-            SmokeDiffusion = 4f,
+            SmokeDiffusion = 6f,
             SmokeVentPerSecond = 0.003f,
             StairRisePerSecond = 0.6f,
             DoorLeak = 0.04f,

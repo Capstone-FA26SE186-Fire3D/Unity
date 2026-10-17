@@ -57,12 +57,12 @@ namespace Fire3D.Unity.Tests.Contracts
         {
             var json = ContractJson.Write(new SessionEvent
             {
-                EventId = "e1", Sequence = 3, Type = EventTypes.Moved, OccurredAt = "2026-10-17T00:00:00.000Z", ElapsedMs = 1500,
+                EventId = "6f1d1c0e-3f0a-4c43-9d1a-0d5f3b8a2c11", Sequence = 3, Type = EventTypes.Moved, OccurredAt = "2026-10-17T00:00:00.000Z", ElapsedMs = 1500,
                 Payload = new Newtonsoft.Json.Linq.JObject { ["distanceMeters"] = 4.5 },
             });
-            StringAssert.Contains("\"eventId\":\"e1\"", json);
+            StringAssert.Contains("\"eventId\":\"6f1d1c0e-3f0a-4c43-9d1a-0d5f3b8a2c11\"", json);
             StringAssert.Contains("\"sequence\":3", json);
-            StringAssert.Contains("\"schemaVersion\":1", json);
+            StringAssert.Contains("\"schemaVersion\":\"1\"", json);
             StringAssert.Contains("\"type\":\"Moved\"", json);
             StringAssert.Contains("\"elapsedMs\":1500", json);
             StringAssert.Contains("\"distanceMeters\":4.5", json);

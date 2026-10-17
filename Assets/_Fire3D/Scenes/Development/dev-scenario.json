@@ -1,0 +1,540 @@
+{
+  "schemaVersion": "fet3d.editor/1",
+  "name": "Cháy bếp tầng 1 — sơ tán từ tầng 2",
+  "runtimeVersion": "2.0.0",
+  "timeLimitSeconds": 300,
+  "randomSeed": 2026,
+  "replanIntervalSeconds": 3,
+  "modePolicy": {
+    "allowedModes": [
+      "Learn",
+      "Guided",
+      "Assessment"
+    ]
+  },
+  "learningObjectives": [
+    "Báo cháy khi phát hiện khói",
+    "Không dùng thang máy, đi cầu thang bộ",
+    "Che mũi bằng khăn ướt khi đi qua khói",
+    "Giúp người khác cùng thoát ra",
+    "Thoát ra ngoài qua lối an toàn"
+  ],
+  "learnerInstructions": "Bạn đang làm việc ở phòng C tầng 2. Có mùi khét từ tầng dưới. Hãy xử lý tình huống và thoát ra ngoài an toàn.",
+  "rubric": {
+    "schema_version": "1",
+    "pass_threshold": 0.7,
+    "criteria": [
+      {
+        "id": "reached-exit",
+        "metric": "reached_exit",
+        "mandatory": true,
+        "weight": 1,
+        "operator": "eq",
+        "threshold": 1,
+        "description": "Đến được lối thoát."
+      }
+    ]
+  },
+  "objects": [
+    {
+      "id": "spawn-1",
+      "kind": "Spawn",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 4.0,
+          "y": 0.0,
+          "z": 3.2
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "label": "Phòng làm việc C, tầng 2"
+    },
+    {
+      "id": "fire-kitchen",
+      "kind": "Hazard",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 12.2,
+          "y": 0.0,
+          "z": 1.6
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "fire.source",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "intensity": 7,
+        "activationSeconds": 8
+      }
+    },
+    {
+      "id": "outage",
+      "kind": "Hazard",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "event.power_outage",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "atSeconds": 75
+      }
+    },
+    {
+      "id": "det-l1-corridor",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 11.0,
+          "y": 2.96,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "alarm.detector",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "smokeThreshold": 0.15
+      }
+    },
+    {
+      "id": "det-l2-corridor",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 11.0,
+          "y": 2.96,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "alarm.detector",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "smokeThreshold": 0.15
+      }
+    },
+    {
+      "id": "spr-kitchen",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 11.0,
+          "y": 2.96,
+          "z": 3.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "suppression.sprinkler",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "state": "Faulty",
+        "activationTemperatureC": 68,
+        "coverageRadiusMeters": 2.5,
+        "fireIntensityReduction": 0.7,
+        "activationDelaySeconds": 5
+      }
+    },
+    {
+      "id": "callpoint-l2",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 19.6,
+          "y": 0.0,
+          "z": 6.12
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0,
+          "w": -4.371139E-08
+        }
+      },
+      "capability": {
+        "id": "alarm.call_point",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "ext-l2",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 8.6,
+          "y": 0.0,
+          "z": 6.35
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "extinguisher.portable",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "agent": "CO2",
+        "dischargeSeconds": 12
+      }
+    },
+    {
+      "id": "towel-1",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 5.6,
+          "y": 0.77,
+          "z": 1.4
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "item.towel",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "smokeIntakeMultiplierWhenCovered": 0.4,
+        "dryAfterSeconds": 150
+      }
+    },
+    {
+      "id": "sink-l2",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 17.55,
+          "y": 0.0,
+          "z": 3.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": -0.707106769,
+          "z": 0.0,
+          "w": 0.707106769
+        }
+      },
+      "capability": {
+        "id": "water.sink",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "elevator-l2",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 16.5,
+          "y": 0.0,
+          "z": 7.86
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 1.0,
+          "z": 0.0,
+          "w": -4.371139E-08
+        }
+      },
+      "capability": {
+        "id": "transport.elevator",
+        "version": "1.0.0"
+      }
+    },
+    {
+      "id": "bag-1",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 6.4,
+          "y": 0.0,
+          "z": 4.6
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "bait.belongings",
+        "version": "1.0.0"
+      },
+      "label": "Ba lô của bạn"
+    },
+    {
+      "id": "stair-door-l1",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 21.0,
+          "y": 0.0,
+          "z": 6.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "door.fire",
+        "version": "1.0.0"
+      },
+      "anchorId": "door-L1-stair"
+    },
+    {
+      "id": "stair-door-l2",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 21.0,
+          "y": 0.0,
+          "z": 6.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "door.fire",
+        "version": "1.0.0"
+      },
+      "anchorId": "door-L2-stair"
+    },
+    {
+      "id": "exit-door-north",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 21.0,
+          "y": 0.0,
+          "z": 14.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "door.exit",
+        "version": "1.0.0"
+      },
+      "anchorId": "door-L1-exit-north"
+    },
+    {
+      "id": "exit-door-west",
+      "kind": "Equipment",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "door.exit",
+        "version": "1.0.0"
+      },
+      "anchorId": "door-L1-exit-west"
+    },
+    {
+      "id": "exit-north",
+      "kind": "Goal",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 21.0,
+          "y": 0.0,
+          "z": 15.2
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "exit.final",
+        "version": "1.0.0"
+      },
+      "label": "Cửa chính"
+    },
+    {
+      "id": "exit-west",
+      "kind": "Goal",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": -1.2,
+          "y": 0.0,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "exit.final",
+        "version": "1.0.0"
+      },
+      "label": "Cửa thoát hiểm phía tây",
+      "anchorId": "door-L1-exit-west"
+    },
+    {
+      "id": "blocked-west",
+      "kind": "BlockedElement",
+      "placement": {
+        "floorId": "L1",
+        "position": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 7.0
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "anchorId": "door-L1-exit-west"
+    },
+    {
+      "id": "npc-panic",
+      "kind": "Npc",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 11.0,
+          "y": 0.0,
+          "z": 2.6
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "npc.guide",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "behaviour": "panic",
+        "mobilityImpaired": false
+      }
+    },
+    {
+      "id": "npc-calm",
+      "kind": "Npc",
+      "placement": {
+        "floorId": "L2",
+        "position": {
+          "x": 5.0,
+          "y": 0.0,
+          "z": 11.5
+        },
+        "rotation": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "w": 1.0
+        }
+      },
+      "capability": {
+        "id": "npc.guide",
+        "version": "1.0.0"
+      },
+      "parameters": {
+        "behaviour": "calm",
+        "mobilityImpaired": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,470 @@
+{
+  "schemaVersion": "fet3d.building/1",
+  "revisionId": "dev-graybox",
+  "units": "m",
+  "storeys": [
+    {
+      "id": "L1",
+      "name": "Tầng 1",
+      "elevation": 0.0,
+      "height": 3.2
+    },
+    {
+      "id": "L2",
+      "name": "Tầng 2",
+      "elevation": 3.2,
+      "height": 3.2
+    }
+  ],
+  "spaces": [
+    {
+      "ifcGlobalId": "L1-Office A",
+      "name": "Office A",
+      "longName": "Office A",
+      "category": "office",
+      "storey": "L1",
+      "bbox": [
+        [
+          0.0999999046,
+          0.0,
+          0.0999999046
+        ],
+        [
+          7.9,
+          3.0,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Kitchen",
+      "name": "Kitchen",
+      "longName": "Kitchen",
+      "category": "kitchen",
+      "storey": "L1",
+      "bbox": [
+        [
+          8.1,
+          0.0,
+          0.0999999046
+        ],
+        [
+          13.9,
+          3.0,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-WC",
+      "name": "WC",
+      "longName": "WC",
+      "category": "wc",
+      "storey": "L1",
+      "bbox": [
+        [
+          14.1,
+          0.0,
+          0.0999999046
+        ],
+        [
+          17.9,
+          3.0,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Stair",
+      "name": "Stair",
+      "longName": "Stair",
+      "category": "stair",
+      "storey": "L1",
+      "bbox": [
+        [
+          18.1,
+          0.0,
+          0.0999999046
+        ],
+        [
+          23.9,
+          3.0,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Corridor",
+      "name": "Corridor",
+      "longName": "Corridor",
+      "category": "corridor",
+      "storey": "L1",
+      "bbox": [
+        [
+          0.100000381,
+          0.0,
+          6.1
+        ],
+        [
+          23.9,
+          3.0,
+          7.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Office B",
+      "name": "Office B",
+      "longName": "Office B",
+      "category": "office",
+      "storey": "L1",
+      "bbox": [
+        [
+          0.0999999046,
+          0.0,
+          8.1
+        ],
+        [
+          9.9,
+          3.0,
+          13.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Meeting",
+      "name": "Meeting",
+      "longName": "Meeting",
+      "category": "office",
+      "storey": "L1",
+      "bbox": [
+        [
+          10.1,
+          0.0,
+          8.1
+        ],
+        [
+          17.9,
+          3.0,
+          13.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L1-Lobby",
+      "name": "Lobby",
+      "longName": "Lobby",
+      "category": "lobby",
+      "storey": "L1",
+      "bbox": [
+        [
+          18.1,
+          0.0,
+          8.1
+        ],
+        [
+          23.9,
+          3.0,
+          13.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Office C",
+      "name": "Office C",
+      "longName": "Office C",
+      "category": "office",
+      "storey": "L2",
+      "bbox": [
+        [
+          0.0999999046,
+          3.19999981,
+          0.0999999046
+        ],
+        [
+          7.9,
+          6.2,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Office D",
+      "name": "Office D",
+      "longName": "Office D",
+      "category": "office",
+      "storey": "L2",
+      "bbox": [
+        [
+          8.1,
+          3.19999981,
+          0.0999999046
+        ],
+        [
+          13.9,
+          6.2,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-WC 2",
+      "name": "WC 2",
+      "longName": "WC 2",
+      "category": "wc",
+      "storey": "L2",
+      "bbox": [
+        [
+          14.1,
+          3.19999981,
+          0.0999999046
+        ],
+        [
+          17.9,
+          6.2,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Stair",
+      "name": "Stair",
+      "longName": "Stair",
+      "category": "stair",
+      "storey": "L2",
+      "bbox": [
+        [
+          18.1,
+          3.19999981,
+          0.0999999046
+        ],
+        [
+          23.9,
+          6.2,
+          5.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Corridor 2",
+      "name": "Corridor 2",
+      "longName": "Corridor 2",
+      "category": "corridor",
+      "storey": "L2",
+      "bbox": [
+        [
+          0.100000381,
+          3.19999981,
+          6.1
+        ],
+        [
+          23.9,
+          6.2,
+          7.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Office E",
+      "name": "Office E",
+      "longName": "Office E",
+      "category": "office",
+      "storey": "L2",
+      "bbox": [
+        [
+          0.0999999046,
+          3.19999981,
+          8.1
+        ],
+        [
+          9.9,
+          6.2,
+          13.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Storage",
+      "name": "Storage",
+      "longName": "Storage",
+      "category": "storage",
+      "storey": "L2",
+      "bbox": [
+        [
+          10.1,
+          3.19999981,
+          8.1
+        ],
+        [
+          17.9,
+          6.2,
+          13.9
+        ]
+      ]
+    },
+    {
+      "ifcGlobalId": "L2-Hall",
+      "name": "Hall",
+      "longName": "Hall",
+      "category": "lobby",
+      "storey": "L2",
+      "bbox": [
+        [
+          18.1,
+          3.19999981,
+          8.1
+        ],
+        [
+          23.9,
+          6.2,
+          13.9
+        ]
+      ]
+    }
+  ],
+  "portals": [
+    {
+      "ifcGlobalId": "door-L1-office-1",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Office A"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-office-2",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Kitchen"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-wc",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "WC"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-stair",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": "EI30",
+      "spaces": [
+        "Stair"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-north-1",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Office B"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-north-2",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Meeting"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-exit-north",
+      "type": "door",
+      "fireExit": true,
+      "fireRating": null,
+      "spaces": [
+        "Lobby"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L1-exit-west",
+      "type": "door",
+      "fireExit": true,
+      "fireRating": null,
+      "spaces": [
+        "Corridor"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-office-1",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Office C"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-office-2",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Office D"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-wc",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "WC"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-stair",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": "EI30",
+      "spaces": [
+        "Stair"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-north-1",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Office E"
+      ],
+      "exitInferred": false
+    },
+    {
+      "ifcGlobalId": "door-L2-north-2",
+      "type": "door",
+      "fireExit": null,
+      "fireRating": null,
+      "spaces": [
+        "Storage"
+      ],
+      "exitInferred": false
+    }
+  ],
+  "interactables": [],
+  "materials": {},
+  "qaIssues": []
+}

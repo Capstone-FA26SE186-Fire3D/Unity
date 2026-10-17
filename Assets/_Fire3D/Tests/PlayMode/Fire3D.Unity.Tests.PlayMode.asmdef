@@ -24,6 +24,8 @@
         "Unity.Collections",
         "Unity.Mathematics",
         "Unity.Transforms",
-        "UnityEngine.TestRunner"
+        "UnityEngine.TestRunner",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
     ]
 }

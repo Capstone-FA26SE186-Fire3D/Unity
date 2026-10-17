@@ -44,11 +44,12 @@ namespace Fire3D.Contracts
     /// <summary>Telemetry event as accepted by POST /api/training/sessions/{id}/events:batch.</summary>
     public sealed class SessionEvent
     {
-        public const int CurrentSchemaVersion = 1;
+        /// <summary>Backend stores schemaVersion as a string (≤ 32 chars); eventId must be a GUID.</summary>
+        public const string CurrentSchemaVersion = "1";
 
         [JsonProperty("eventId")] public string EventId;
         [JsonProperty("sequence")] public long Sequence;
-        [JsonProperty("schemaVersion")] public int SchemaVersion = CurrentSchemaVersion;
+        [JsonProperty("schemaVersion")] public string SchemaVersion = CurrentSchemaVersion;
         [JsonProperty("type")] public string Type;
         [JsonProperty("occurredAt")] public string OccurredAt;
         [JsonProperty("elapsedMs")] public long ElapsedMs;
