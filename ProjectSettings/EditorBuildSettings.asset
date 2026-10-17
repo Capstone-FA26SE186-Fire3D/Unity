@@ -4,5 +4,11 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/_Fire3D/Scenes/Bootstrap/Bootstrap.unity
+    guid: 8bf28cccb41865245a08a8987fa5fb02
+  - enabled: 1
+    path: Assets/_Fire3D/Scenes/Development/Development_Graybox.unity
+    guid: 55c32a1144b7ac04ba7a2da75e4a810f
   m_configObjects: {}

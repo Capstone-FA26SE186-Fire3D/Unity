@@ -1,0 +1,31 @@
+{
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll",
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "name": "Fire3D.Unity.Tests.PlayMode",
+    "rootNamespace": "Fire3D.Unity.Tests",
+    "references": [
+        "Fire3D.Unity.Runtime",
+        "Fire3D.Unity.Contracts",
+        "Fire3D.Unity.Simulation",
+        "Unity.Entities",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Transforms",
+        "UnityEngine.TestRunner",
+        "Unity.InputSystem",
+        "UnityEngine.UI"
+    ]
+}

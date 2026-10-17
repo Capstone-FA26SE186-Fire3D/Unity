@@ -1,0 +1,58 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8725c3959c2212d4ca26fa01160ec067, type: 3}
+  m_Name: MaterialLibrary
+  m_EditorClassIdentifier: Fire3D.Unity.Runtime::Fire3D.Unity.Content.MaterialLibrary
+  Version: 1
+  Entries:
+  - Key: ceiling.tile
+    Material: {fileID: 2100000, guid: 33c61753eb989fa4690c7f08e96cb82b, type: 2}
+    RepeatMeters: 1.2
+  - Key: concrete
+    Material: {fileID: 2100000, guid: ddad01059a0a99c469c06a2f0f82920b, type: 2}
+    RepeatMeters: 2
+  - Key: floor.carpet
+    Material: {fileID: 2100000, guid: 846c49a8e47e59a4fa8da52161bfc98a, type: 2}
+    RepeatMeters: 1
+  - Key: floor.tile
+    Material: {fileID: 2100000, guid: 7cb5e381dac67cb469978a7e832ddd0d, type: 2}
+    RepeatMeters: 1.2
+  - Key: floor.wood
+    Material: {fileID: 2100000, guid: c3fc587f31ac5e24987f02e99485b9fa, type: 2}
+    RepeatMeters: 2
+  - Key: glass.clear
+    Material: {fileID: 2100000, guid: 25fc9b7a7ae5a1d4f986b9ab30431ad4, type: 2}
+    RepeatMeters: 1
+  - Key: glass.frosted
+    Material: {fileID: 2100000, guid: fb9e107069f6b694a852fe79a0ed34ca, type: 2}
+    RepeatMeters: 1
+  - Key: metal.brushed
+    Material: {fileID: 2100000, guid: 32a24e694c3fc7b43ae338518afd6da2, type: 2}
+    RepeatMeters: 0.5
+  - Key: metal.painted
+    Material: {fileID: 2100000, guid: 19b1e2c553332b24d82c48efa91fe1c3, type: 2}
+    RepeatMeters: 1
+  - Key: stone
+    Material: {fileID: 2100000, guid: ea6ded586751128428c4243bc6062868, type: 2}
+    RepeatMeters: 1.5
+  - Key: wall.brick
+    Material: {fileID: 2100000, guid: 84bbbeb1670f3b54c979aaaa1920eaf2, type: 2}
+    RepeatMeters: 1.5
+  - Key: wall.plaster
+    Material: {fileID: 2100000, guid: e5367d5d31542c342a1839212b565a0f, type: 2}
+    RepeatMeters: 2
+  - Key: wall.tile
+    Material: {fileID: 2100000, guid: 78a24d788e06e9d45962066261f48a63, type: 2}
+    RepeatMeters: 1
+  - Key: wood
+    Material: {fileID: 2100000, guid: 3db011aa03d1b6d43bfbfed1b1826c03, type: 2}
+    RepeatMeters: 1
