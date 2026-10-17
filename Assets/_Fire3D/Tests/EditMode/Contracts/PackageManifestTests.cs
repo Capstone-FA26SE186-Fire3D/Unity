@@ -80,6 +80,17 @@ namespace Fire3D.Unity.Tests.Contracts
         }
 
         [Test]
+        public void RuntimeCompatibilityUsesMinRuntimeVersion()
+        {
+            Assert.IsTrue(RuntimeCatalog.IsCompatible(RuntimeCatalog.RuntimeVersion));
+            Assert.IsTrue(RuntimeCatalog.IsCompatible("2.0.0"));
+            Assert.IsFalse(RuntimeCatalog.IsCompatible("2.1.0"), "package newer than the app");
+            Assert.IsFalse(RuntimeCatalog.IsCompatible("1.9.0"), "different major");
+            Assert.IsFalse(RuntimeCatalog.IsCompatible("2.0"));
+            Assert.IsFalse(RuntimeCatalog.IsCompatible(null));
+        }
+
+        [Test]
         public void ReadManifestAcceptsBackendShape()
         {
             var json = @"{""schemaVersion"":""fet3d.package/1"",""jobId"":""j"",""buildTarget"":""Android"",""protocolVersion"":""1"",
