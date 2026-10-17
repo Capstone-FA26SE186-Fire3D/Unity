@@ -112,6 +112,7 @@ namespace Fire3D.Unity.Editor.Development
                 scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
                 LightingBaker.PlaceProbes(scene, new LightingBaker.Options());
                 var outage = LightingBaker.BakeBuilding(new[] { scene }, $"{SceneDir}/Lighting", new LightingBaker.Options());
+                scene = LightingBaker.Reacquire(new[] { ScenePath })[0];
                 var switcher = new GameObject("LightingScenarios").AddComponent<LightingScenarioSwitcher>();
                 SceneManager.MoveGameObjectToScene(switcher.gameObject, scene);
                 foreach (var data in outage.Values)
@@ -304,14 +305,23 @@ namespace Fire3D.Unity.Editor.Development
             var rise = FloorHeight / steps;
             const float run = 0.25f;
             const float x0 = 18.75f;
+            // Thin treads over a sloped stringer: solid stacked blocks would bury most lightmap texels.
             for (var i = 0; i < steps; i++)
             {
                 var x = x0 + i * run;
-                Box($"Step_{i:00}", new Vector3(x, 0f, 0.4f), new Vector3(x + run, (i + 1) * rise, 2.3f), "concrete", stair);
+                Box($"Step_{i:00}", new Vector3(x, i * rise, 0.4f), new Vector3(x + run, (i + 1) * rise, 2.3f), "concrete", stair);
             }
 
+            var length = Mathf.Sqrt(steps * run * steps * run + FloorHeight * FloorHeight);
+            var angle = Mathf.Atan2(FloorHeight, steps * run) * Mathf.Rad2Deg;
+            var stringer = GrayboxMesh.Create("Stringer", stair, Vector3.zero, new Vector3(length, 0.16f, 1.9f), M("concrete"));
+            stringer.transform.localPosition = new Vector3(x0 + steps * run * 0.5f, FloorHeight * 0.5f - 0.12f, 1.35f);
+            stringer.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+            var rail = GrayboxMesh.Create("Rail", stair, Vector3.zero, new Vector3(length, 0.05f, 0.05f), M("metal.brushed"), false);
+            rail.transform.localPosition = new Vector3(x0 + steps * run * 0.5f, FloorHeight * 0.5f + 0.95f, 2.35f);
+            rail.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
+
             // Rail and landing at the top.
-            Box("Rail", new Vector3(18.6f, 0.9f, 2.32f), new Vector3(23.4f, 0.95f + FloorHeight, 2.38f), "metal.brushed", stair, collider: false);
             Box("Guard_L2", new Vector3(18.5f, FloorHeight, 2.45f), new Vector3(23.4f, FloorHeight + 1.0f, 2.55f), "metal.painted", stair);
             var vol = new GameObject("StairVolume").AddComponent<StairVolume>();
             vol.transform.SetParent(stair, false);

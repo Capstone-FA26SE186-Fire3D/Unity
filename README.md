@@ -4,14 +4,27 @@ Runtime Android cho tập huấn sơ tán FET3D: IFC → 3D → Unity Android �
 
 ## Trạng thái
 
-Repo hiện có scaffold folder, README và hai assembly Runtime/Editor. Chưa có gameplay, scene, Android bridge hoặc content pipeline thực thi. Hướng đã chọn: **ECS từ đầu cho hazard/NPC**, GameObject/MonoBehaviour cho player, camera góc nhìn thứ ba, tương tác và UI.
+Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và NPC bằng **Entities**, camera third-person có xử lý va chạm, tương tác theo ngữ cảnh (tối đa 3 nút, nút giữ, bẫy), HUD, phiên tập huấn với telemetry đúng shape backend, bridge Mobile, nạp gói AssetBundle có ánh sáng bake và worker build trên server. Chưa nghiệm thu trên thiết bị Android thật và chưa chạy worker với GLB thật từ Blender worker.
 
 ## Môi trường
 
-- Editor theo [ProjectVersion.txt](ProjectSettings/ProjectVersion.txt): Unity 6000.6.3f1. Giữ phiên bản này trong đợt scaffold; Docs đang ghi Unity 6 LTS, cần thống nhất toolchain trước triển khai runtime.
-- Android Build Support gồm Android SDK/NDK và OpenJDK khi build Android.
-- Git LFS cho binary assets theo .gitattributes.
-- [manifest.json](Packages/manifest.json) đã khai báo URP `17.5.0`, tương thích với Unity 6000.6.3f1. Unity Package Manager sẽ bổ sung dependency vào `packages-lock.json` khi mở project. Entities, Burst, Addressables và Test Framework vẫn chưa cài. Tạo URP Pipeline Asset và gán vào Graphics/Quality Settings là bước Editor tiếp theo.
+- Unity **6000.6.3f1** (Android Build Support + SDK/NDK + OpenJDK), Git LFS (jpg/png/glb/exr…).
+- Package chính: URP 17.6, Entities 6.6, Burst, Collections, Mathematics, Input System, uGUI, Newtonsoft, glTFast (chỉ dùng trong Editor để import GLB), Test Framework.
+
+## Chạy nhanh
+
+| Việc | Cách làm |
+| --- | --- |
+| Dựng lại scene graybox 2 tầng + kịch bản dev | Menu `Fire3D/Development/Rebuild Graybox Scene` (thêm `+ Bake Lighting` để bake 2 bộ ánh sáng) |
+| Chơi thử | Mở `Scenes/Development/Development_Graybox` → Play. WASD + chuột phải xoay, cuộn chuột zoom, E/F/R hoặc 1/2/3 cho nút hành động, C cúi người, Shift chạy |
+| Test | `unity test . --mode EditMode` và `unity test . --mode PlayMode` |
+| APK demo (không cần Mobile) | Menu `Fire3D/Build/Demo APK` hoặc `-executeMethod Fire3D.Unity.Editor.AndroidExport.AndroidBuilder.BuildDemoApk` |
+| Export cho Mobile (Unity as a Library) | `Fire3D/Build/Export Unity Library for Mobile` → `Builds/AndroidLibrary` |
+| Worker trên server | `unity run <project> -- -executeMethod Fire3D.Unity.Editor.ContentPipeline.BuildWorker.Run -fet3dInput <dir> -fet3dOutput <dir> [-fet3dTarget Android] [-fet3dGpu]` |
+
+**Đầu vào worker:** `building_metadata.json` (`fet3d.building/1`), `scenario.json` (`fet3d.editor/1`) và GLB (mỗi tầng theo `storeys[].chunk`, hoặc một `building.glb`). Tên node = IFC GlobalId, tên material ánh xạ sang `libraryKey` qua `materials`. **Đầu ra:** `floor_<id>` (scene bundle), `floor_<id>_lighting` (bộ ánh sáng mất điện), tài liệu JSON và `manifest.json` (`fet3d.package/1`, SHA-256 từng file).
+
+**Bridge Mobile:** Unity nhận `UnitySendMessage("Fire3DBridge", "Launch", json)` (`LaunchRequest`, protocol 1), có thêm `Pause` và `Abort`. Unity gửi `Ready`, `Launched`, `Events` (lô ≤ 500), `Completed`, `Error`, `Exited` qua `com.fet3d.unity.Fire3DUnityBridge.onUnityMessage(String)`.
 
 ## Cấu trúc
 
@@ -66,7 +79,7 @@ Assets/_Fire3D/
     └── Fixtures/
 ```
 
-README trong từng folder mô tả trách nhiệm và ví dụ loại file. Giữ tên namespace gốc Fire3D.Unity; code đặt theo feature, ví dụ Fire3D.Unity.Simulation.Hazards.
+README trong từng folder mô tả trách nhiệm và ví dụ loại file. Namespace gốc `Fire3D.Unity` cho gameplay/presentation/editor; riêng contract và mô phỏng Entities dùng `Fire3D.Contracts` và `Fire3D.Simulation` (xem context về source generator).
 
 Trong mỗi module Simulation, thêm Components/ cho dữ liệu, Systems/ cho điều phối và Jobs/ cho tính toán khi có implementation. Tham khảo [unity-ecs-patterns](.agents/skills/unity-ecs-patterns/SKILL.md): structural changes dùng command buffer; dependency và lifetime native allocation phải rõ; chỉ dùng Burst cho code tương thích, đo hiệu năng trên Android. Ví dụ skill cần được kiểm tra với phiên bản Entities được cài.
 

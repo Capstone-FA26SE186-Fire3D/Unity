@@ -15,9 +15,9 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 
 ## Hiện trạng quan sát
 
-- Repo chứa scaffold `Assets/_Fire3D/` gồm Runtime, Authoring, Editor, Scenes, Prefabs, Art, Settings và Tests; xem [README](../README.md) cho sơ đồ và trách nhiệm. Chưa có gameplay/scene/bridge thực thi.
-- README yêu cầu Unity `6000.6.3f1` (Unity 6.6), Android Build Support gồm SDK/NDK/OpenJDK và Git LFS cho binary assets.
-- Repo đã có lịch sử Git, origin là `Capstone-FA26SE186-Fire3D/Unity`. Branch/commit và kiểm tra từng phiên nằm trong local handoff; xác minh remote trước task mới.
+- Đã có runtime chạy được (17/10/2026, nhánh `feature/third-person-player-camera`): contract `fet3d.editor/1`/`fet3d.building/1`/launch/event/manifest, mô phỏng Entities (lửa/khói/nhiệt, cửa, cầu thang, sprinkler, đầu báo, timeline, NPC A*), camera third-person, tương tác theo ngữ cảnh, HUD, phiên tập huấn + telemetry, bridge Mobile, nạp gói AssetBundle, scene graybox 2 tầng, worker bake. 21 test EditMode + 6 PlayMode đạt trong Editor 6000.6.3f1.
+- Chưa có: chạy trên thiết bị Android thật, tích hợp native module Mobile, worker chạy với GLB thật từ Blender worker, model Tripo/Mixamo, benchmark.
+- README yêu cầu Unity `6000.6.3f1`, Android Build Support gồm SDK/NDK/OpenJDK và Git LFS (jpg/png/glb đã vào LFS).
 
 ## Vai trò trong FET3D
 
@@ -30,11 +30,15 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 
 ## Lựa chọn kỹ thuật
 
-- Editor hiện là 6000.6.3f1; Docs đang ghi Unity 6 LTS. Manifest đã khai báo URP 17.5.0; mở project bằng Unity Editor sẽ resolve và ghi dependency vào packages-lock.json, sau đó cần tạo/gán URP Pipeline Asset trong Graphics/Quality Settings. Addressables, Entities, Burst và Test Framework chưa cài. Scaffold giữ nguyên Packages/ProjectSettings.
-- Người dùng đã chọn ECS từ đầu cho hazard/NPC, dùng Jobs/Burst khi tương thích. GameObject/MonoBehaviour giữ player, camera third-person, interactions, UI và bridge. ECS sở hữu trạng thái hazard/NPC/cửa; gameplay gửi command tại tick, presentation đọc snapshot sau jobs. Đo hiệu năng và bộ nhớ Android khi có representative content.
-- Authoring chứa cấu hình và baker; Editor chứa inspector và content pipeline. Hiện chỉ giữ hai assembly Runtime/Editor; ranh giới assembly dự kiến và acceptance scenarios ở README. Chưa thêm Components/Systems/Jobs rỗng hoặc class giả.
-- API contract, auth, launch grant, telemetry/event sequence và package contract thuộc .NET/Docs; Unity bọc chúng bằng adapter rõ ràng, không nhân bản business authorization tại client.
-- Không hard-code endpoint production, API key hoặc thông tin cá nhân. Cấu hình theo environment, secret injection/build pipeline đã được duyệt.
+Chốt 16–17/10/2026 (trưởng nhóm):
+
+- Editor **6000.6.3f1**, URP 17.6, Entities 6.6, Input System, uGUI; không dùng Addressables (nạp AssetBundle trực tiếp).
+- **Entities ngay từ đầu** cho lưới lửa/khói/nhiệt và NPC (`Fire3D.Simulation`). Entity tạo lúc runtime từ metadata + kịch bản, không cần baking/SubScene. NPC: ECS giữ trạng thái/A*, hiển thị bằng GameObject pool (sau này Mixamo). Player, camera, tương tác, UI, bridge dùng MonoBehaviour.
+- **Ưu tiên hình ảnh:** Unity build worker chạy batch trên server của team (Azure VM Windows) — import GLB, gán material theo `libraryKey`, collider, bake lightmap + light probe + reflection probe cho hai bộ ánh sáng (bình thường, mất điện), AssetBundle theo tầng + manifest SHA-256. Hậu kỳ URP: ACES, bloom, vignette.
+- Texture PBR chỉ nằm trong `Art/MaterialLibrary` và được đóng thành bundle `fet3d-materials` cài sẵn trong app; GLB chỉ mang `libraryKey`.
+- Namespace của assembly có code Entities sinh tự động **không được chứa đoạn `Fire3D.Unity`** (`Fire3D.Simulation`, `Fire3D.Contracts`), vì code sinh ra gọi `Unity.Entities…` sẽ bị hiểu thành `Fire3D.Unity.Entities`.
+- Unity chỉ ghi event (GUID `eventId`, `schemaVersion` dạng chuỗi, `Moved`/`HazardExposure` mỗi 5 giây, event capability theo `runtime-catalog.batch1`); backend chấm Passed/NotPassed. Thông số an toàn (khăn, sprinkler) chỉ lấy từ tham số kịch bản đã duyệt, không có giá trị mặc định.
+- API contract, auth, launch grant và package contract thuộc .NET/Docs; Unity bọc chúng bằng adapter rõ ràng, không nhân bản business authorization tại client. Không hard-code endpoint, key hoặc thông tin cá nhân.
 
 ## Tài liệu cần đối chiếu
 

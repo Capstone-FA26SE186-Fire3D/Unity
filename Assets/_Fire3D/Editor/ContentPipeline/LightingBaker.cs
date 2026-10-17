@@ -65,9 +65,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 {
                     foreach (var r in root.GetComponentsInChildren<MeshRenderer>(true))
                     {
-                        if (r.GetComponentInParent<IgnoreForGrid>() != null || r.GetComponentInParent<Gameplay.Interactions.DoorView>() != null
-                            && r.transform != r.GetComponentInParent<Gameplay.Interactions.DoorView>().transform)
-                            continue; // Door leaves move; they use probes.
+                        // Small props use probes. Door leaves are baked too: they are closed most of the time and keep
+                        // their baked shading when they swing.
+                        if (r.GetComponentInParent<IgnoreForGrid>() != null)
+                            continue;
                         GameObjectUtility.SetStaticEditorFlags(r.gameObject,
                             StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic
                             | StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.BatchingStatic);
@@ -150,23 +151,54 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
             PrepareStatic(scenes);
             var paths = scenes.Select(s => s.path).ToArray();
-            foreach (var s in scenes)
-                EditorSceneManager.SaveScene(s);
 
-            // 1) Outage set → captured.
+            // BakeMultipleScenes re-opens the scenes from disk: save every change first and re-acquire after.
+            // 1) Outage set → captured into scenario assets.
             SetLightsForScenario(scenes, LightingScenarioSwitcher.Outage);
+            SaveAll(scenes);
             Lightmapping.BakeMultipleScenes(paths);
-            var outage = new Dictionary<string, LightingScenarioData>();
-            foreach (var s in scenes)
-                outage[s.path] = Capture(s, LightingScenarioSwitcher.Outage, outputFolder);
+            var reopened = Reacquire(paths);
+            // Keep asset paths: the next bake reloads scenes and unloads unreferenced assets.
+            var outagePaths = new Dictionary<string, string>();
+            foreach (var s in reopened)
+                outagePaths[s.path] = AssetDatabase.GetAssetPath(Capture(s, LightingScenarioSwitcher.Outage, outputFolder));
 
             // 2) Normal set → stays in the scenes' own lighting data.
-            SetLightsForScenario(scenes, LightingScenarioSwitcher.Normal);
+            SetLightsForScenario(reopened, LightingScenarioSwitcher.Normal);
+            SaveAll(reopened);
             Lightmapping.BakeMultipleScenes(paths);
-            foreach (var s in scenes)
-                EditorSceneManager.SaveScene(s);
+            SaveAll(Reacquire(paths));
             AssetDatabase.SaveAssets();
+            var outage = new Dictionary<string, LightingScenarioData>();
+            foreach (var kv in outagePaths)
+                outage[kv.Key] = AssetDatabase.LoadAssetAtPath<LightingScenarioData>(kv.Value);
             return outage;
+        }
+
+        private static void SaveAll(IEnumerable<Scene> scenes)
+        {
+            foreach (var s in scenes)
+            {
+                EditorSceneManager.MarkSceneDirty(s);
+                EditorSceneManager.SaveScene(s);
+            }
+        }
+
+        /// <summary>Scene handles become invalid after a multi-scene bake; look them up again by path.</summary>
+        public static List<Scene> Reacquire(IEnumerable<string> paths)
+        {
+            var list = new List<Scene>();
+            var first = true;
+            foreach (var p in paths)
+            {
+                var s = SceneManager.GetSceneByPath(p);
+                if (!s.IsValid() || !s.isLoaded)
+                    s = EditorSceneManager.OpenScene(p, first ? OpenSceneMode.Single : OpenSceneMode.Additive);
+                list.Add(s);
+                first = false;
+            }
+
+            return list;
         }
 
         private static LightingScenarioData Capture(Scene scene, string scenario, string outputFolder)

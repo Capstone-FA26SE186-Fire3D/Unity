@@ -93,8 +93,9 @@ namespace Fire3D.Unity.Content
                 }
             }
 
-            var switcher = UnityEngine.Object.FindAnyObjectByType<LightingScenarioSwitcher>()
-                           ?? new GameObject("LightingScenarios").AddComponent<LightingScenarioSwitcher>();
+            var switcher = UnityEngine.Object.FindAnyObjectByType<LightingScenarioSwitcher>();
+            if (switcher == null)
+                switcher = new GameObject("LightingScenarios").AddComponent<LightingScenarioSwitcher>();
             foreach (var floor in manifest.Floors)
             {
                 var request = AssetBundle.LoadFromFileAsync(Path.Combine(root, floor.Bundle));
@@ -107,8 +108,17 @@ namespace Fire3D.Unity.Content
                 }
 
                 content.Bundles.Add(bundle);
-                foreach (var data in bundle.LoadAllAssets<LightingScenarioData>())
-                    switcher.Register(data);
+                if (!string.IsNullOrEmpty(floor.LightingBundle))
+                {
+                    var lightingRequest = AssetBundle.LoadFromFileAsync(Path.Combine(root, floor.LightingBundle));
+                    yield return lightingRequest;
+                    if (lightingRequest.assetBundle != null)
+                    {
+                        content.Bundles.Add(lightingRequest.assetBundle);
+                        foreach (var data in lightingRequest.assetBundle.LoadAllAssets<LightingScenarioData>())
+                            switcher.Register(data);
+                    }
+                }
 
                 var sceneName = floor.Scene;
                 if (string.IsNullOrEmpty(sceneName) && bundle.isStreamedSceneAssetBundle && bundle.GetAllScenePaths().Length > 0)
@@ -118,8 +128,6 @@ namespace Fire3D.Unity.Content
                 content.Scenes.Add(SceneManager.GetSceneByName(sceneName));
             }
 
-            if (switcher.Has(LightingScenarioSwitcher.Normal))
-                switcher.Apply(LightingScenarioSwitcher.Normal);
             done(content);
         }
 

@@ -62,7 +62,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var color = ConfigureTexture($"{dir}/Color.jpg", TextureImporterType.Default, true);
             var normal = ConfigureTexture($"{dir}/NormalGL.jpg", TextureImporterType.NormalMap, false);
             var rough = ConfigureTexture($"{dir}/Roughness.jpg", TextureImporterType.Default, false, readable: true);
-            var metal = ConfigureTexture($"{dir}/Metalness.jpg", TextureImporterType.Default, false, readable: true);
+            // Painted metal is a dielectric paint layer: ignore the metalness map so it does not render black indoors.
+            var metal = key == "metal.painted" ? null : ConfigureTexture($"{dir}/Metalness.jpg", TextureImporterType.Default, false, readable: true);
             var ao = ConfigureTexture($"{dir}/AmbientOcclusion.jpg", TextureImporterType.Default, false);
             var mask = BuildMetallicSmoothness(dir, rough, metal);
 

@@ -98,6 +98,8 @@ namespace Fire3D.Contracts
     {
         [JsonProperty("floorId")] public string FloorId;
         [JsonProperty("bundle")] public string Bundle;
+        /// <summary>Optional bundle with the floor's power-outage lighting scenario.</summary>
+        [JsonProperty("lightingBundle")] public string LightingBundle;
         [JsonProperty("scene")] public string Scene;
         [JsonProperty("elevation")] public float Elevation;
     }
