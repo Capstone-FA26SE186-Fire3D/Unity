@@ -17,7 +17,7 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 
 - Đã có runtime chạy được (17/10/2026, nhánh `feature/third-person-player-camera`): contract `fet3d.editor/1`/`fet3d.building/1`/launch/event/manifest, mô phỏng Entities (lửa/khói/nhiệt, cửa, cầu thang, sprinkler, đầu báo, timeline, NPC A*), camera third-person, tương tác theo ngữ cảnh, HUD, phiên tập huấn + telemetry, bridge Mobile, nạp gói AssetBundle, scene graybox 2 tầng, worker bake. 21 test EditMode + 6 PlayMode đạt trong Editor 6000.6.3f1.
 - Chưa có: chạy trên thiết bị Android thật, tích hợp native module Mobile, worker chạy với GLB thật từ Blender worker, model Tripo/Mixamo, benchmark.
-- README yêu cầu Unity `6000.6.3f1`, Android Build Support gồm SDK/NDK/OpenJDK và Git LFS (jpg/png/glb đã vào LFS).
+- README yêu cầu Unity `6000.6.6f1`, Android Build Support gồm SDK/NDK/OpenJDK và Git LFS (jpg/png/glb đã vào LFS).
 
 ## Vai trò trong FET3D
 
@@ -32,7 +32,7 @@ Nguồn chuẩn: [v7 contract](../../Docs/schema_v7_contract.md) và [requiremen
 
 Chốt 16–17/10/2026 (trưởng nhóm):
 
-- Editor **6000.6.3f1**, URP 17.6, Entities 6.6, Input System, uGUI; không dùng Addressables (nạp AssetBundle trực tiếp).
+- Editor **6000.6.6f1** (nâng từ 6000.6.3f1 ngày 17/10/2026 vì có bản vá UaaL relaunch trên Android, light probe nhiều scene, AssetBundle tham chiếu chéo), URP 17.6, Entities 6.6, Input System, uGUI; không dùng Addressables (nạp AssetBundle trực tiếp).
 - **Entities ngay từ đầu** cho lưới lửa/khói/nhiệt và NPC (`Fire3D.Simulation`). Entity tạo lúc runtime từ metadata + kịch bản, không cần baking/SubScene. NPC: ECS giữ trạng thái/A*, hiển thị bằng GameObject pool (sau này Mixamo). Player, camera, tương tác, UI, bridge dùng MonoBehaviour.
 - **Ưu tiên hình ảnh:** Unity build worker chạy batch trên server của team (Azure VM Windows) — import GLB, gán material theo `libraryKey`, collider, bake lightmap + light probe + reflection probe cho hai bộ ánh sáng (bình thường, mất điện), AssetBundle theo tầng + manifest SHA-256. Hậu kỳ URP: ACES, bloom, vignette.
 - Texture PBR chỉ nằm trong `Art/MaterialLibrary` và được đóng thành bundle `fet3d-materials` cài sẵn trong app; GLB chỉ mang `libraryKey`.
