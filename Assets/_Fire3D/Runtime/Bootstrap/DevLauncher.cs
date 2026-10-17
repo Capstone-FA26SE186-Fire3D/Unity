@@ -22,8 +22,12 @@ namespace Fire3D.Unity.Bootstrap
 
         private void Start()
         {
-            if (launchOnStart)
-                Launch();
+            if (!launchOnStart)
+                return;
+            var session = Launch();
+            // Development builds: `-fet3dAutoplay` plays the scenario with the bot and writes a report (see AutoPilot).
+            if (session != null && Development.AutoPilot.RequestedFromCommandLine())
+                Development.AutoPilot.Attach(session, Development.AutoPilot.DefaultOutputDirectory(), quitWhenDone: !Application.isEditor);
         }
 
         public Session.TrainingSession Launch()

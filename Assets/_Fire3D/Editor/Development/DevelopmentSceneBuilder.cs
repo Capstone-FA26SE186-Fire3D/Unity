@@ -158,7 +158,8 @@ namespace Fire3D.Unity.Editor.Development
             {
                 Box("Slab_W", new Vector3(-0.1f, e - Slab, -0.1f), new Vector3(18.5f, e, 14.1f), "concrete", level);
                 Box("Slab_E_N", new Vector3(18.5f, e - Slab, 2.5f), new Vector3(24.1f, e, 14.1f), "concrete", level);
-                Box("Slab_E_S", new Vector3(23.4f, e - Slab, -0.1f), new Vector3(24.1f, e, 2.5f), "concrete", level);
+                // Top landing starts where the last tread ends (x = 23.25) so the flight is reachable from L2.
+                Box("Slab_E_S", new Vector3(23.25f, e - Slab, -0.1f), new Vector3(24.1f, e, 2.5f), "concrete", level);
             }
 
             // Ceiling finish under the slab above.
@@ -285,7 +286,9 @@ namespace Fire3D.Unity.Editor.Development
             var leafW = width - 0.12f;
             var leaf = GrayboxMesh.Create("Leaf", hinge, new Vector3(leafW * 0.5f, (DoorH - 0.04f) * 0.5f, 0f), new Vector3(leafW, DoorH - 0.04f, 0.045f),
                 M(fire || exit ? "metal.painted" : "wood"));
-            GrayboxMesh.Create("Handle", leaf.transform, new Vector3(leafW * 0.42f, -0.05f, 0.04f), new Vector3(0.12f, 0.03f, 0.03f), M("metal.brushed"), false);
+            // Lever handles on both faces at 1.0 m (leaf centre is at ~1.03 m).
+            GrayboxMesh.Create("Handle", leaf.transform, new Vector3(leafW * 0.38f, -0.03f, 0.045f), new Vector3(0.13f, 0.025f, 0.03f), M("metal.brushed"), false);
+            GrayboxMesh.Create("Handle_Back", leaf.transform, new Vector3(leafW * 0.38f, -0.03f, -0.045f), new Vector3(0.13f, 0.025f, 0.03f), M("metal.brushed"), false);
             var view = root.gameObject.AddComponent<DoorView>();
             view.Bind(hinge, leaf.GetComponent<Collider>());
             view.SetOpen(false, instant: true);
@@ -321,8 +324,9 @@ namespace Fire3D.Unity.Editor.Development
             rail.transform.localPosition = new Vector3(x0 + steps * run * 0.5f, FloorHeight * 0.5f + 0.95f, 2.35f);
             rail.transform.localRotation = Quaternion.Euler(0f, 0f, angle);
 
-            // Rail and landing at the top.
-            Box("Guard_L2", new Vector3(18.5f, FloorHeight, 2.45f), new Vector3(23.4f, FloorHeight + 1.0f, 2.55f), "metal.painted", stair);
+            // Guard along the stair hole on L2. It stops short of the top landing: the opening between its end
+            // and the east wall (inner face x = 23.9) must fit the 0.56 m player capsule with room to turn.
+            Box("Guard_L2", new Vector3(18.5f, FloorHeight, 2.45f), new Vector3(22.5f, FloorHeight + 1.0f, 2.55f), "metal.painted", stair);
             var vol = new GameObject("StairVolume").AddComponent<StairVolume>();
             vol.transform.SetParent(stair, false);
             vol.transform.localPosition = new Vector3(21.2f, -0.1f, 1.35f);

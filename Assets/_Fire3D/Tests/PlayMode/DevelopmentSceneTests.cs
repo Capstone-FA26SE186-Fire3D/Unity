@@ -116,6 +116,32 @@ namespace Fire3D.Unity.Tests.PlayModeTests
         }
 
         [UnityTest]
+        public IEnumerator OpenedDoorLeafVisiblySwingsAwayFromPlayer()
+        {
+            foreach (var view in Object.FindObjectsByType<DoorView>())
+                foreach (var r in view.GetComponentsInChildren<MeshRenderer>())
+                    if (r.name == "Leaf")
+                        Assert.IsFalse(r.isPartOfStaticBatch, $"{view.name} leaf is static-batched and cannot move");
+
+            var player = _session.Player;
+            player.Teleport(new Vector3(21f, 0.05f, 12.6f), 0f); // Lobby, facing the north exit door.
+            yield return new WaitForFixedUpdate();
+            yield return null;
+            var interaction = _session.Interaction;
+            var door = interaction.Target;
+            Assert.IsNotNull(door);
+            var leaf = door.GetComponentsInChildren<MeshRenderer>().First(r => r.name == "Leaf");
+            var before = leaf.bounds.center;
+            interaction.Press(interaction.Actions.ToList().FindIndex(a => a.Id == "open"));
+            yield return new WaitForSeconds(1.6f);
+            Assert.AreEqual("open", door.State);
+            var after = leaf.bounds.center;
+            Assert.Greater(Vector3.Distance(before, after), 0.25f, "leaf mesh moved");
+            // Swung away: the leaf centre moved to the far side of the doorway (+Z, outside), not towards the player.
+            Assert.Greater(after.z, before.z, "door opens away from the player");
+        }
+
+        [UnityTest]
         public IEnumerator LockedWestExitSendsWrongExit()
         {
             var player = _session.Player;

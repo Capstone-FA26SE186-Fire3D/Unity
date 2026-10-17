@@ -34,8 +34,61 @@ namespace Fire3D.Unity.Editor
             // Lightmaps and probes are part of the content; keep baked GI working on device.
             PlayerSettings.gpuSkinning = true;
             EditorUserBuildSettings.androidBuildSubtarget = MobileTextureSubtarget.ASTC;
+            ApplyRendering();
             AssetDatabase.SaveAssets();
             Debug.Log("[Fire3D] Project settings applied.");
+        }
+
+        /// <summary>
+        /// Image quality on device: every quality level renders with the FET3D URP asset, 4× MSAA (cheap on tile-based
+        /// mobile GPUs; edges of walls, furniture and stairs were stair-stepped without it), soft shadows over a
+        /// 25 m indoor distance so the 2048 shadow map stays sharp, and anisotropic filtering for floors seen at
+        /// grazing angles.
+        /// </summary>
+        public static void ApplyRendering()
+        {
+            var urp = GraphicsSettings.defaultRenderPipeline;
+            if (urp == null)
+            {
+                Debug.LogWarning("[Fire3D] No default render pipeline asset; rendering settings skipped.");
+                return;
+            }
+
+            var so = new SerializedObject(urp);
+            Set(so, "m_MSAA", 4);
+            Set(so, "m_RenderScale", 1f);
+            Set(so, "m_SoftShadowsSupported", true);
+            Set(so, "m_SoftShadowQuality", 2);
+            Set(so, "m_ShadowDistance", 25f);
+            so.ApplyModifiedPropertiesWithoutUndo();
+            EditorUtility.SetDirty(urp);
+
+            var current = QualitySettings.GetQualityLevel();
+            for (var i = 0; i < QualitySettings.names.Length; i++)
+            {
+                QualitySettings.SetQualityLevel(i, false);
+                QualitySettings.renderPipeline = urp;
+                QualitySettings.anisotropicFiltering = AnisotropicFiltering.Enable;
+            }
+
+            QualitySettings.SetQualityLevel(current, false);
+        }
+
+        private static void Set(SerializedObject so, string name, object value)
+        {
+            var p = so.FindProperty(name);
+            if (p == null)
+            {
+                Debug.LogWarning($"[Fire3D] URP asset has no {name}");
+                return;
+            }
+
+            switch (value)
+            {
+                case int v: p.intValue = v; break;
+                case float v: p.floatValue = v; break;
+                case bool v: p.boolValue = v; break;
+            }
         }
     }
 }
