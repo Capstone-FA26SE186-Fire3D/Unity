@@ -12,6 +12,8 @@
 
 .EXAMPLE
   .\Install-PackageWorker.ps1 -BaseUrl https://api.fet3d.io.vn -RegisterTask
+  Asks for the worker key (hidden) and the Windows password of this account (Windows dialog), then registers a task that
+  starts the worker whenever the VM boots.
 .EXAMPLE
   .\Install-PackageWorker.ps1 -KeyOnly
 #>
@@ -28,7 +30,9 @@ param(
     [switch]$KeyOnly,
     [switch]$RegisterTask,
     [string]$TaskName = 'FET3D Unity Package Worker',
-    [ValidateSet('Interactive', 'Password', 'S4U')] [string]$TaskLogon = 'Interactive'
+    # Password (default): starts at boot with no RDP login. Interactive: starts when this user logs on.
+    # S4U is not offered: an S4U logon cannot decrypt the DPAPI worker key nor read Git Credential Manager.
+    [ValidateSet('Password', 'Interactive')] [string]$TaskLogon = 'Password'
 )
 
 Set-StrictMode -Version 2.0
@@ -101,15 +105,12 @@ if ($RegisterTask) {
             $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Interactive -RunLevel Limited
             Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
         }
-        'S4U' {
-            # Runs without a logged-on session and without storing a password; Unity licensing must be activated for this user.
-            $trigger = New-ScheduledTaskTrigger -AtStartup
-            $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType S4U -RunLevel Limited
-            Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -Principal $principal -Force | Out-Null
-        }
         'Password' {
-            # Windows asks for the account password itself and stores it in the Task Scheduler credential vault.
+            # Starts when the VM boots (after the Azure "Start" button), with no RDP login. Windows asks for the account password
+            # itself and keeps it in the Task Scheduler credential store, so the task has a full logon: DPAPI key and Git
+            # credentials work. Re-run this script if the Windows password changes.
             $trigger = New-ScheduledTaskTrigger -AtStartup
+            $trigger.Delay = 'PT1M' # let the network come up first
             $cred = Get-Credential -UserName $user -Message 'Password of the worker account (stored by Task Scheduler, not by FET3D)'
             Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger $trigger -Settings $settings -User $cred.UserName -Password $cred.GetNetworkCredential().Password -RunLevel Limited -Force | Out-Null
         }
