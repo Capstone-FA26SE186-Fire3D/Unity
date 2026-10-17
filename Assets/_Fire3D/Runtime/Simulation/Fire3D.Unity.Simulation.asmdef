@@ -1,0 +1,21 @@
+{
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": true,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "name": "Fire3D.Unity.Simulation",
+    "rootNamespace": "Fire3D.Simulation",
+    "references": [
+        "Fire3D.Unity.Contracts",
+        "Unity.Entities",
+        "Unity.Burst",
+        "Unity.Collections",
+        "Unity.Mathematics",
+        "Unity.Transforms"
+    ]
+}

@@ -1,18 +1,29 @@
 {
-  "name": "Fire3D.Unity.Editor",
-  "rootNamespace": "Fire3D.Unity.Editor",
-  "references": [
-    "Fire3D.Unity.Runtime"
-  ],
-  "includePlatforms": [
-    "Editor"
-  ],
-  "excludePlatforms": [],
-  "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
-  "autoReferenced": true,
-  "defineConstraints": [],
-  "versionDefines": [],
-  "noEngineReferences": false
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "name": "Fire3D.Unity.Editor",
+    "rootNamespace": "Fire3D.Unity.Editor",
+    "references": [
+        "Fire3D.Unity.Runtime",
+        "Fire3D.Unity.Contracts",
+        "Fire3D.Unity.Simulation",
+        "Unity.Entities",
+        "Unity.Mathematics",
+        "Unity.Collections",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime",
+        "glTFast",
+        "glTFast.Editor"
+    ]
 }
