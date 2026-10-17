@@ -78,6 +78,29 @@ namespace Fire3D.Contracts
     {
         public const string RuntimeVersion = "2.0.0";
 
+        /// <summary>
+        /// True when a package that needs <paramref name="minRuntimeVersion"/> can run on this app: same major version and
+        /// the required version not newer than <see cref="RuntimeVersion"/>. Unparseable versions are incompatible.
+        /// </summary>
+        public static bool IsCompatible(string minRuntimeVersion)
+        {
+            if (!TryParseVersion(minRuntimeVersion, out var required) || !TryParseVersion(RuntimeVersion, out var app))
+                return false;
+            return required.major == app.major && (required.minor < app.minor || (required.minor == app.minor && required.patch <= app.patch));
+        }
+
+        private static bool TryParseVersion(string text, out (int major, int minor, int patch) version)
+        {
+            version = default;
+            var parts = text?.Split('.');
+            if (parts == null || parts.Length != 3)
+                return false;
+            if (!int.TryParse(parts[0], out var major) || !int.TryParse(parts[1], out var minor) || !int.TryParse(parts[2], out var patch))
+                return false;
+            version = (major, minor, patch);
+            return true;
+        }
+
         private static readonly Dictionary<string, ActionDefinition[]> Actions = new()
         {
             [Capabilities.AlarmCallPoint] = new[] { new ActionDefinition { Id = "press", Label = "Nhấn báo cháy", Event = EventTypes.AlarmRaised } },

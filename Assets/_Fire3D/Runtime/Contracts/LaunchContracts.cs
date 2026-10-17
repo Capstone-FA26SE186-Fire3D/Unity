@@ -73,17 +73,27 @@ namespace Fire3D.Contracts
         [JsonProperty("collapsed")] public bool Collapsed;
     }
 
-    /// <summary>Package manifest written by the Unity build worker next to the bundles.</summary>
+    /// <summary>
+    /// Package manifest written by the Unity build worker next to the bundles (<c>fet3d.package/1</c>, BE
+    /// contracts/package/v1/manifest.schema.json). The backend validates the required fields, that every floor bundle is
+    /// listed in <c>files</c> and that <c>manifest.json</c> does not list itself; Mobile and Unity verify SHA-256 per file.
+    /// </summary>
     public sealed class ContentManifest
     {
         public const string Schema = "fet3d.package/1";
+        public const string ManifestSchemaVersion = "1";
+        public const string FileName = "manifest.json";
 
         [JsonProperty("schemaVersion")] public string SchemaVersion;
-        [JsonProperty("runtimeVersion")] public string RuntimeVersion;
+        [JsonProperty("jobId")] public string JobId;
         [JsonProperty("buildTarget")] public string BuildTarget;
+        [JsonProperty("protocolVersion")] public string ProtocolVersion;
+        [JsonProperty("manifestSchemaVersion")] public string ManifestSchema;
+        [JsonProperty("runtimeVersion")] public string RuntimeVersion;
+        [JsonProperty("minRuntimeVersion")] public string MinRuntimeVersion;
+        [JsonProperty("requiredCapabilities")] public List<string> RequiredCapabilities = new();
         [JsonProperty("unityVersion")] public string UnityVersion;
         [JsonProperty("materialLibraryVersion")] public string MaterialLibraryVersion;
-        [JsonProperty("buildingId")] public string BuildingId;
         [JsonProperty("revisionId")] public string RevisionId;
         [JsonProperty("lightingScenarios")] public List<string> LightingScenarios = new();
         [JsonProperty("floors")] public List<ManifestFloor> Floors = new();
@@ -96,7 +106,7 @@ namespace Fire3D.Contracts
 
     public sealed class ManifestFloor
     {
-        [JsonProperty("floorId")] public string FloorId;
+        [JsonProperty("id")] public string Id;
         [JsonProperty("bundle")] public string Bundle;
         /// <summary>Optional bundle with the floor's power-outage lighting scenario.</summary>
         [JsonProperty("lightingBundle")] public string LightingBundle;

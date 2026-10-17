@@ -46,9 +46,12 @@ namespace Fire3D.Unity.Content
 
             var root = Path.GetDirectoryName(manifestPath) ?? ".";
             var manifest = content.Manifest;
-            if (manifest.RuntimeVersion != RuntimeCatalog.RuntimeVersion)
+            // The package names the oldest runtime that can play it (minRuntimeVersion, fet3d.package/1); older packages only
+            // carry runtimeVersion. Same major, package not newer than the app.
+            var required = manifest.MinRuntimeVersion ?? manifest.RuntimeVersion;
+            if (!RuntimeCatalog.IsCompatible(required))
             {
-                fail("RUNTIME_INCOMPATIBLE", $"Package runtime {manifest.RuntimeVersion} ≠ app runtime {RuntimeCatalog.RuntimeVersion}.");
+                fail("RUNTIME_INCOMPATIBLE", $"Package needs runtime {required}; app runtime is {RuntimeCatalog.RuntimeVersion}.");
                 yield break;
             }
 
