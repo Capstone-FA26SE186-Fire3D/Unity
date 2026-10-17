@@ -69,9 +69,14 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                         // their baked shading when they swing.
                         if (r.GetComponentInParent<IgnoreForGrid>() != null)
                             continue;
-                        GameObjectUtility.SetStaticEditorFlags(r.gameObject,
-                            StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic
-                            | StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.BatchingStatic);
+                        // Moving parts (door leaf, handles) keep baked shading but must not be static-batched: batched
+                        // meshes never move, so the leaf stayed visibly shut while its collider swung open. They must
+                        // not occlude either, or an open door would still hide the room behind it.
+                        var moving = IsMovingPart(r.transform);
+                        GameObjectUtility.SetStaticEditorFlags(r.gameObject, moving
+                            ? StaticEditorFlags.ContributeGI | StaticEditorFlags.ReflectionProbeStatic
+                            : StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic
+                              | StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.BatchingStatic);
                         r.receiveGI = ReceiveGI.Lightmaps;
                         if (!r.TryGetComponent<BakedRendererId>(out var bid))
                             bid = r.gameObject.AddComponent<BakedRendererId>();
@@ -79,6 +84,16 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                     }
                 }
             }
+        }
+
+        /// <summary>True under a door's swinging leaf (anything below the DoorView's hinge/leaf transform).</summary>
+        private static bool IsMovingPart(Transform t)
+        {
+            var door = t.GetComponentInParent<Fire3D.Unity.Gameplay.Interactions.DoorView>();
+            if (door == null)
+                return false;
+            var leaf = new SerializedObject(door).FindProperty("leaf")?.objectReferenceValue as Transform;
+            return leaf != null && (t == leaf || t.IsChildOf(leaf));
         }
 
         public static void SetLightsForScenario(IEnumerable<Scene> scenes, string scenario)
@@ -128,6 +143,25 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 rp.boxProjection = true;
                 rp.resolution = 128;
                 rp.hdr = true;
+            }
+
+            // Outside ring (exits, assembly area): without it, characters that leave the building take their light
+            // from the nearest indoor probes and turn black against the daylight.
+            if (spaces.Count > 0)
+            {
+                var all = spaces[0].Bounds;
+                foreach (var s in spaces)
+                    all.Encapsulate(s.Bounds);
+                const float margin = 6f;
+                var ground = all.min.y;
+                for (var x = all.min.x - margin; x <= all.max.x + margin + 1e-3f; x += options.ProbeSpacing * 1.5f)
+                for (var z = all.min.z - margin; z <= all.max.z + margin + 1e-3f; z += options.ProbeSpacing * 1.5f)
+                {
+                    if (x > all.min.x - 0.6f && x < all.max.x + 0.6f && z > all.min.z - 0.6f && z < all.max.z + 0.6f)
+                        continue;
+                    positions.Add(new Vector3(x, ground + 0.4f, z));
+                    positions.Add(new Vector3(x, ground + 1.7f, z));
+                }
             }
 
             group.probePositions = positions.ToArray();

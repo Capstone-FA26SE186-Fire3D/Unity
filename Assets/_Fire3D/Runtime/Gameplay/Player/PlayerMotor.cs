@@ -33,6 +33,9 @@ namespace Fire3D.Unity.Gameplay.Player
         public bool Crouched { get; private set; }
         public bool Running { get; private set; }
         public bool InputEnabled { get; set; } = true;
+
+        /// <summary>Set while a hand gesture plays (touching or opening a door): the body stays put.</summary>
+        public bool ActionLock { get; set; }
         public Vector3 PlanarVelocity => _planarVelocity;
         public float SpeedFactor { get; set; } = 1f;
 
@@ -83,7 +86,7 @@ namespace Fire3D.Unity.Gameplay.Player
         {
             if (dt <= 0f)
                 return;
-            var frame = InputEnabled ? _input?.Current ?? default : default;
+            var frame = InputEnabled && !ActionLock ? _input?.Current ?? default : default;
 
             if (frame.CrouchToggled)
                 SetCrouched(!Crouched);
@@ -107,7 +110,7 @@ namespace Fire3D.Unity.Gameplay.Player
             moved.y = 0f;
             _distanceSinceReport += moved.magnitude;
 
-            if (_planarVelocity.sqrMagnitude > 0.01f)
+            if (_planarVelocity.sqrMagnitude > 0.01f && !ActionLock)
             {
                 var look = Quaternion.LookRotation(new Vector3(_planarVelocity.x, 0f, _planarVelocity.z));
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeedDegrees * dt);

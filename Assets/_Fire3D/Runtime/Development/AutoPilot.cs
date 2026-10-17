@@ -419,10 +419,17 @@ namespace Fire3D.Unity.Development
             var door = _interaction.Target;
             _frame = default;
             yield return null;
+            var firstDoor = _touchedDoors.Count == 0;
             if (_touchedDoors.Add(door.ObjectId) && Slot("touch") >= 0)
             {
                 _interaction.Press(Slot("touch"));
-                yield return new WaitForSeconds(0.4f);
+                if (firstDoor)
+                {
+                    yield return new WaitForSeconds(0.55f); // Hand on the leaf.
+                    yield return _rec.Capture("door_touch");
+                }
+
+                yield return WhileBusy();
             }
 
             var open = Slot("open");
@@ -434,9 +441,24 @@ namespace Fire3D.Unity.Development
             }
 
             _interaction.Press(open);
-            yield return new WaitForSeconds(0.7f);
+            if (firstDoor)
+            {
+                yield return new WaitForSeconds(0.6f); // Leaf mid-swing.
+                yield return _rec.Capture("door_open");
+            }
+
+            yield return WhileBusy();
+            yield return new WaitForSeconds(0.35f);
             if (door.State == "open")
                 _doorsOpened++;
+        }
+
+        private IEnumerator WhileBusy()
+        {
+            yield return null;
+            var until = Time.time + 4f;
+            while (_interaction.Busy && Time.time < until)
+                yield return null;
         }
 
         // ---- Helpers --------------------------------------------------------------------------------------------
