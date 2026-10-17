@@ -8,7 +8,7 @@ Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và N
 
 ## Môi trường
 
-- Unity **6000.6.3f1** (Android Build Support + SDK/NDK + OpenJDK), Git LFS (jpg/png/glb/exr…).
+- Unity **6000.6.6f1** (Android Build Support + SDK/NDK + OpenJDK), Git LFS (jpg/png/glb/exr…).
 - Package chính: URP 17.6, Entities 6.6, Burst, Collections, Mathematics, Input System, uGUI, Newtonsoft, glTFast (chỉ dùng trong Editor để import GLB), Test Framework.
 
 ## Chạy nhanh
