@@ -138,6 +138,32 @@ namespace Fire3D.Unity.Content
             nose.transform.localScale = new Vector3(0.18f, 0.08f, 0.05f);
             nose.GetComponent<Renderer>().sharedMaterial = Lit(new Color(0.12f, 0.12f, 0.14f), 0.3f);
             Object.DestroyImmediate(nose.GetComponent<Collider>());
+
+            // Arms on shoulder pivots ("ArmL"/"ArmR"): PlayerGestures aims the pivot's -Y at a hand target.
+            var sleeve = Lit(shirt * 0.85f, 0.2f);
+            var skin = Lit(new Color(0.87f, 0.7f, 0.58f), 0.3f);
+            foreach (var (side, x) in new[] { ("L", -0.25f), ("R", 0.25f) })
+            {
+                var shoulder = new GameObject("Arm" + side).transform;
+                shoulder.SetParent(root.transform, false);
+                shoulder.localPosition = new Vector3(x, 1.33f, 0f);
+                shoulder.localRotation = Quaternion.Euler(0f, 0f, x > 0f ? 6f : -6f);
+                var arm = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+                arm.name = "Upper";
+                arm.transform.SetParent(shoulder, false);
+                arm.transform.localPosition = new Vector3(0f, -0.27f, 0f);
+                arm.transform.localScale = new Vector3(0.11f, 0.27f, 0.11f);
+                arm.GetComponent<Renderer>().sharedMaterial = sleeve;
+                Object.DestroyImmediate(arm.GetComponent<Collider>());
+                var hand = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                hand.name = "Hand";
+                hand.transform.SetParent(shoulder, false);
+                hand.transform.localPosition = new Vector3(0f, -0.58f, 0f);
+                hand.transform.localScale = new Vector3(0.1f, 0.11f, 0.08f);
+                hand.GetComponent<Renderer>().sharedMaterial = skin;
+                Object.DestroyImmediate(hand.GetComponent<Collider>());
+            }
+
             return root;
         }
     }

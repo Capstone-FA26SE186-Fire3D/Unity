@@ -93,6 +93,18 @@ namespace Fire3D.Unity.Gameplay.Cameras
                 Target = target;
         }
 
+        private float _shakeAmplitude;
+        private float _shakeUntil;
+        private float _shakeSeconds = 1f;
+
+        /// <summary>Short positional shake (meters), e.g. touching a hot door. Decays linearly.</summary>
+        public void Shake(float amplitude, float seconds)
+        {
+            _shakeAmplitude = Mathf.Max(_shakeAmplitude * Mathf.Clamp01((_shakeUntil - Time.time) / _shakeSeconds), amplitude);
+            _shakeSeconds = Mathf.Max(0.05f, seconds);
+            _shakeUntil = Time.time + _shakeSeconds;
+        }
+
         /// <summary>Points the camera behind the target, e.g. after spawning.</summary>
         public void SnapBehind(float yawDegrees)
         {
@@ -139,7 +151,15 @@ namespace Fire3D.Unity.Gameplay.Cameras
             _currentDistance = CameraCollisionSolver.Resolve(_currentDistance, _desiredDistance, hit, collisionPadding,
                 minCollisionDistance, recoverSpeed, deltaTime);
 
-            transform.SetPositionAndRotation(pivot + back * _currentDistance, rotation);
+            var position = pivot + back * _currentDistance;
+            var shake = _shakeUntil > Time.time ? _shakeAmplitude * (_shakeUntil - Time.time) / _shakeSeconds : 0f;
+            if (shake > 0f)
+            {
+                var t = Time.time * 28f;
+                position += rotation * new Vector3(Mathf.PerlinNoise(t, 0.3f) - 0.5f, Mathf.PerlinNoise(0.7f, t) - 0.5f, 0f) * (2f * shake);
+            }
+
+            transform.SetPositionAndRotation(position, rotation);
             UpdateTargetVisibility();
         }
 
@@ -163,6 +183,8 @@ namespace Fire3D.Unity.Gameplay.Cameras
                 var h = _hits[i];
                 if (target != null && h.collider.transform.IsChildOf(target))
                     continue;
+                if (h.collider is CharacterController)
+                    continue; // People (NPC capsules) passing behind the player must not yank the camera in.
                 var d = h.distance <= 0f && h.point == Vector3.zero ? 0f : h.distance;
                 if (!nearest.HasValue || d < nearest.Value)
                     nearest = d;

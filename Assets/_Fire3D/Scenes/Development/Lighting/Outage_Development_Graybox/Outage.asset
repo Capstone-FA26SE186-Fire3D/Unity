@@ -755,5 +755,47 @@ MonoBehaviour:
   - BakedId: 246
     LightmapIndex: -1
     ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 247
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 248
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 249
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 250
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 251
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 252
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 253
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 254
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 255
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 256
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 257
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 258
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 259
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 260
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
   Probes: {fileID: 0}
   AmbientColor: {r: 0.03, g: 0.03, b: 0.035, a: 1}

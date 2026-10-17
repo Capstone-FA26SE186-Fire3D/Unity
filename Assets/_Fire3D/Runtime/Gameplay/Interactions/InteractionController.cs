@@ -1,7 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 using Fire3D.Contracts;
 using Fire3D.Simulation;
 using Fire3D.Unity.Gameplay.Player;
+using Fire3D.Unity.Presentation.UI;
 using Newtonsoft.Json.Linq;
 using Unity.Mathematics;
 using UnityEngine;
@@ -25,6 +27,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
         private InputAction[] _keys;
         private PlayerVitals _vitals;
         private PlayerMotor _motor;
+        private PlayerGestures _gestures;
 
         private Interactable _held;
         private float _towelWetUntil = -1f;
@@ -35,6 +38,9 @@ namespace Fire3D.Unity.Gameplay.Interactions
         private bool _largeFireReported;
 
         public Interactable Target { get; private set; }
+
+        /// <summary>True while a hand gesture (touch/open/close a door) plays; buttons are ignored meanwhile.</summary>
+        public bool Busy { get; private set; }
         public Interactable Held => _held;
         public IReadOnlyList<AvailableAction> Actions => _actions;
         public float HoldProgress(int slot) => slot >= 0 && slot < _holdProgress.Length ? _holdProgress[slot] : 0f;
@@ -50,6 +56,9 @@ namespace Fire3D.Unity.Gameplay.Interactions
         {
             _vitals = GetComponent<PlayerVitals>();
             _motor = GetComponent<PlayerMotor>();
+            _gestures = GetComponent<PlayerGestures>();
+            if (_gestures == null)
+                _gestures = gameObject.AddComponent<PlayerGestures>();
             _keys = new[]
             {
                 new InputAction("Action1", InputActionType.Button, "<Keyboard>/e"),
@@ -85,8 +94,15 @@ namespace Fire3D.Unity.Gameplay.Interactions
         /// <summary>UI or keyboard pressed button <paramref name="slot"/>.</summary>
         public void Press(int slot)
         {
-            if (slot < 0 || slot >= _actions.Count)
+            if (slot < 0 || slot >= _actions.Count || Busy)
                 return;
+            var chosen = _actions[slot];
+            if (Target != null && Capabilities.IsDoor(Target.CapabilityId) && chosen.Id is "touch" or "open" or "close")
+            {
+                StartCoroutine(DoorGesture(chosen, Target));
+                return;
+            }
+
             _pressed[slot] = true;
             _holdProgress[slot] = 0f;
             var action = _actions[slot];
@@ -229,12 +245,12 @@ namespace Fire3D.Unity.Gameplay.Interactions
 
         private readonly HashSet<string> _checkedDoors = new();
 
-        private void Execute(AvailableAction action)
+        private void Execute(AvailableAction action, Interactable explicitTarget = null)
         {
             var ctx = Ctx;
             if (ctx == null)
                 return;
-            var target = action.Source == ActionSource.Target ? Target : _held;
+            var target = explicitTarget != null ? explicitTarget : action.Source == ActionSource.Target ? Target : _held;
             if (target == null)
                 return;
             var cap = target.CapabilityId;
@@ -253,16 +269,31 @@ namespace Fire3D.Unity.Gameplay.Interactions
                     var hot = DoorIsHot(ctx, target);
                     _checkedDoors.Add(target.ObjectId);
                     log.Emit(EventTypes.CheckedDoorHeat, new JObject { ["objectId"] = target.ObjectId, ["hot"] = hot });
-                    ctx.Show(hot ? "Cửa nóng! Có thể có lửa phía sau." : "Cửa không nóng.", hot ? MessageTone.Danger : MessageTone.Info);
+                    ctx.Show(hot ? "Cửa nóng! Có thể có lửa phía sau, đừng mở." : "Cửa không nóng.", hot ? MessageTone.Danger : MessageTone.Info);
+                    var heatView = target.GetComponent<DoorView>();
+                    if (heatView != null)
+                        heatView.ShowHeat(hot);
+                    if (hot)
+                    {
+                        Haptics.Warn();
+                        if (_motor != null && _motor.CameraRig != null)
+                            _motor.CameraRig.Shake(0.045f, 0.35f);
+                    }
+                    else
+                    {
+                        Haptics.Confirm();
+                    }
+
                     break;
                 }
 
                 case "open":
-                    SetDoor(ctx, target, true);
+                    SetDoor(ctx, target, true, transform.position);
+                    Haptics.Confirm();
                     break;
 
                 case "close":
-                    SetDoor(ctx, target, false);
+                    SetDoor(ctx, target, false, transform.position);
                     log.EmitObject(EventTypes.ClosedDoor, target.ObjectId);
                     break;
 
@@ -322,6 +353,58 @@ namespace Fire3D.Unity.Gameplay.Interactions
             }
         }
 
+        /// <summary>
+        /// Touch / open / close as a body action: turn to the door, reach the leaf (back of the hand for heat, the
+        /// handle to open or close), act at the moment of contact, then lower the hand. Movement pauses meanwhile.
+        /// </summary>
+        private IEnumerator DoorGesture(AvailableAction action, Interactable door)
+        {
+            Busy = true;
+            if (_motor != null)
+                _motor.ActionLock = true;
+            try
+            {
+                var view = door.GetComponent<DoorView>();
+                var touch = action.Id == "touch";
+                Vector3 Point() => view != null ? view.HandPoint(transform.position, handle: !touch) : door.PromptPosition;
+
+                // Face the leaf.
+                var look = Point() - transform.position;
+                look.y = 0f;
+                if (look.sqrMagnitude > 1e-4f)
+                {
+                    var from = transform.rotation;
+                    var to = Quaternion.LookRotation(look);
+                    for (var t = 0f; t < 1f; t += Time.deltaTime / 0.16f)
+                    {
+                        transform.rotation = Quaternion.Slerp(from, to, t);
+                        yield return null;
+                    }
+
+                    transform.rotation = to;
+                }
+
+                var hot = false;
+                void Contact()
+                {
+                    if (touch && Ctx != null)
+                        hot = DoorIsHot(Ctx, door);
+                    Execute(action, door);
+                }
+
+                if (_gestures != null)
+                    yield return _gestures.Reach(Point(), touch ? 0.32f : 0.24f, touch ? 0.8f : 0.3f, Contact, () => hot);
+                else
+                    Contact();
+            }
+            finally
+            {
+                Busy = false;
+                if (_motor != null)
+                    _motor.ActionLock = false;
+            }
+        }
+
         private static bool DoorIsHot(GameContext ctx, Interactable door)
         {
             var grid = ctx.Simulation.Grid;
@@ -338,12 +421,12 @@ namespace Fire3D.Unity.Gameplay.Interactions
             return hottest > 60f;
         }
 
-        private static void SetDoor(GameContext ctx, Interactable door, bool open)
+        private static void SetDoor(GameContext ctx, Interactable door, bool open, Vector3 opener)
         {
             door.State = open ? "open" : "closed";
             var view = door.GetComponent<DoorView>();
             if (view != null)
-                view.SetOpen(open);
+                view.SetOpen(open, opener);
             ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.SetDoorOpen, ObjectId = door.SimulationId, Flag = open });
         }
 

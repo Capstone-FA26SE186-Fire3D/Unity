@@ -286,7 +286,9 @@ namespace Fire3D.Unity.Editor.Development
             var leafW = width - 0.12f;
             var leaf = GrayboxMesh.Create("Leaf", hinge, new Vector3(leafW * 0.5f, (DoorH - 0.04f) * 0.5f, 0f), new Vector3(leafW, DoorH - 0.04f, 0.045f),
                 M(fire || exit ? "metal.painted" : "wood"));
-            GrayboxMesh.Create("Handle", leaf.transform, new Vector3(leafW * 0.42f, -0.05f, 0.04f), new Vector3(0.12f, 0.03f, 0.03f), M("metal.brushed"), false);
+            // Lever handles on both faces at 1.0 m (leaf centre is at ~1.03 m).
+            GrayboxMesh.Create("Handle", leaf.transform, new Vector3(leafW * 0.38f, -0.03f, 0.045f), new Vector3(0.13f, 0.025f, 0.03f), M("metal.brushed"), false);
+            GrayboxMesh.Create("Handle_Back", leaf.transform, new Vector3(leafW * 0.38f, -0.03f, -0.045f), new Vector3(0.13f, 0.025f, 0.03f), M("metal.brushed"), false);
             var view = root.gameObject.AddComponent<DoorView>();
             view.Bind(hinge, leaf.GetComponent<Collider>());
             view.SetOpen(false, instant: true);
