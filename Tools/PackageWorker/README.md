@@ -50,9 +50,11 @@ BE cần bật trên deployment: `ProcessingWorker__PackagePullEnabled=true`, `P
 `-RegisterTask` tạo task **FET3D Unity Package Worker** (RunLevel Limited, tự chạy lại sau 1 phút nếu tiến trình chết, một instance).
 Chế độ đăng nhập `-TaskLogon`:
 
-- `Interactive` (mặc định): chạy khi user đang đăng nhập. Ngắt kết nối RDP (không Sign out) thì worker vẫn chạy.
-- `S4U`: chạy không cần phiên đăng nhập, không lưu mật khẩu. Cần kiểm tra license Unity còn hoạt động ở chế độ này.
-- `Password`: Windows tự hỏi mật khẩu tài khoản và giữ trong Task Scheduler; FET3D không đụng tới mật khẩu.
+- `Password` (mặc định): worker **tự chạy khi VM khởi động** (bấm Start trên Azure Portal là đủ, không cần RDP), trễ 1 phút để mạng sẵn sàng. Windows tự hiện hộp thoại hỏi mật khẩu tài khoản và giữ trong Task Scheduler; FET3D không đụng tới mật khẩu. Đổi mật khẩu Windows thì chạy lại installer.
+- `Interactive`: chỉ chạy khi user đăng nhập (phải RDP vào một lần sau mỗi lần bật VM). Ngắt RDP bằng nút X thì worker vẫn chạy; Sign out thì dừng.
+- Không dùng S4U: phiên S4U không giải mã được khóa DPAPI và không đọc được Git Credential Manager.
+
+Tắt VM để tiết kiệm: dùng **Stop** trên Azure Portal (trạng thái phải là *Stopped (deallocated)*). Job tạo trong lúc VM tắt nằm chờ; job đang build dở được nhận lại khi lease hết hạn sau khi worker chạy lại.
 
 Quản lý: `Start-ScheduledTask`/`Stop-ScheduledTask -TaskName 'FET3D Unity Package Worker'`. Chạy tay để xem log trực tiếp:
 `powershell -NoProfile -ExecutionPolicy Bypass -File .\Fire3DPackageWorker.ps1`.
