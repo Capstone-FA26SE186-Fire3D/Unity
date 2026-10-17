@@ -243,7 +243,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
             switch (action.Id)
             {
                 case "press" when cap == Capabilities.AlarmCallPoint:
-                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.RaiseAlarm, ObjectId = target.ObjectId });
+                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.RaiseAlarm, ObjectId = target.SimulationId });
                     log.EmitObject(EventTypes.AlarmRaised, target.ObjectId);
                     ctx.Show("Đã nhấn chuông báo cháy", MessageTone.Success);
                     break;
@@ -310,12 +310,12 @@ namespace Fire3D.Unity.Gameplay.Interactions
                     break;
 
                 case "call" when cap == Capabilities.NpcGuide:
-                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.CallNpc, ObjectId = target.ObjectId });
+                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.CallNpc, ObjectId = target.SimulationId });
                     ctx.Show("Bạn đã gọi người này");
                     break;
 
                 case "lead":
-                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.LeadNpc, ObjectId = target.ObjectId });
+                    ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.LeadNpc, ObjectId = target.SimulationId });
                     log.EmitObject(EventTypes.NpcGuided, target.ObjectId);
                     ctx.Show("Người này đang đi theo bạn", MessageTone.Success);
                     break;
@@ -344,7 +344,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
             var view = door.GetComponent<DoorView>();
             if (view != null)
                 view.SetOpen(open);
-            ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.SetDoorOpen, ObjectId = door.ObjectId, Flag = open });
+            ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.SetDoorOpen, ObjectId = door.SimulationId, Flag = open });
         }
 
         private void PickUp(GameContext ctx, Interactable item)

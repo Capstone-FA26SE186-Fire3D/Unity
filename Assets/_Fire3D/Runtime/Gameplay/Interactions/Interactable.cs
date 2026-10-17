@@ -18,7 +18,14 @@ namespace Fire3D.Unity.Gameplay.Interactions
         [SerializeField] private string state;
         [SerializeField] private Transform promptAnchor;
 
+        /// <summary>Telemetry id: the scenario object id (fet3d.editor/1), or the IFC GlobalId for geometry-only doors.</summary>
         public string ObjectId { get => objectId; set => objectId = value; }
+
+        /// <summary>IFC GlobalId of the anchored building element (doors); identifies the simulation door entity.</summary>
+        public string ElementId { get; set; }
+
+        /// <summary>Id the simulation uses for this object (door entity, NPC, …).</summary>
+        public string SimulationId => string.IsNullOrEmpty(ElementId) ? objectId : ElementId;
         public string CapabilityId { get => capabilityId; set => capabilityId = value; }
 
         /// <summary>Object state: doors "open"/"closed", towels "dry"/"wet", extinguisher "sealed"/"armed"/"empty".</summary>

@@ -83,7 +83,7 @@ namespace Fire3D.Unity.Content
             foreach (var door in Object.FindObjectsByType<DoorView>(FindObjectsSortMode.None))
             {
                 var it = door.GetComponent<Interactable>();
-                var id = it != null ? it.ObjectId : door.name;
+                var id = it != null ? it.SimulationId : door.name;
                 var blocked = blockedAnchors.Contains(id);
                 var cells = GridRasterizer.CellsIn(layout, door.FrameBounds);
                 world.Simulation.AddDoor(id, cells, door.Open, blocked);
@@ -120,7 +120,7 @@ namespace Fire3D.Unity.Content
             // Scenario equipment may have reconfigured anchored doors; locked doors stay locked.
             foreach (var door in Object.FindObjectsByType<DoorView>(FindObjectsSortMode.None))
             {
-                if (door.TryGetComponent<Interactable>(out var it) && blockedAnchors.Contains(it.ObjectId))
+                if (door.TryGetComponent<Interactable>(out var it) && (blockedAnchors.Contains(it.SimulationId) || blockedAnchors.Contains(it.ObjectId)))
                     it.State = "blocked";
             }
 
@@ -231,6 +231,7 @@ namespace Fire3D.Unity.Content
                 it = door.gameObject.AddComponent<Interactable>();
                 var element = door.GetComponent<IfcElement>();
                 it.Configure(element != null ? element.GlobalId : door.name, Capabilities.DoorStandard, null);
+                it.ElementId = element != null ? element.GlobalId : door.name;
             }
 
             it.State = door.Open ? "open" : "closed";
@@ -294,7 +295,9 @@ namespace Fire3D.Unity.Content
 
             if (!go.TryGetComponent<Interactable>(out var it))
                 it = go.AddComponent<Interactable>();
-            it.Configure(obj.AnchorId ?? obj.Id, capability, obj.Parameters);
+            var elementId = obj.AnchorId != null && _elements.ContainsKey(obj.AnchorId) ? obj.AnchorId : it.ElementId;
+            it.Configure(obj.Id, capability, obj.Parameters);
+            it.ElementId = elementId;
             if (Capabilities.IsDoor(capability) && go.TryGetComponent<DoorView>(out var view))
                 it.State = view.Open ? "open" : "closed";
             it.DisplayName = obj.Label ?? DefaultName(capability);
