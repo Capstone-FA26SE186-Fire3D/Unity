@@ -1,0 +1,19 @@
+{
+  "baseUrl": "https://api.fet3d.io.vn",
+  "toolchainVersion": "unity-6000.6.6f1-worker-1",
+  "buildTarget": "Android",
+  "unityExe": "C:\\Program Files\\Unity\\Hub\\Editor\\6000.6.6f1\\Editor\\Unity.exe",
+  "projectPath": "C:\\fet3d\\unity",
+  "workRoot": "C:\\fet3d\\work",
+  "keyFile": "C:\\fet3d\\secrets\\worker-key.dpapi",
+  "pollSeconds": 30,
+  "renewSeconds": 100,
+  "buildTimeoutMinutes": 120,
+  "gpuBake": false,
+  "noBake": false,
+  "noGraphics": false,
+  "gitPull": true,
+  "gitBranch": "main",
+  "keepJobs": 5,
+  "httpTimeoutSeconds": 300
+}
