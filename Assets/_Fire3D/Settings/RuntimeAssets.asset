@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 295ce19dba82134408ce051f22b9c7e1, type: 3}
+  m_Name: RuntimeAssets
+  m_EditorClassIdentifier: Fire3D.Unity.Runtime::Fire3D.Unity.Content.RuntimeAssets
+  Interactables:
+  - Capability: alarm.call_point
+    Prefab: {fileID: 3200872470844605637, guid: fe863c56e1f10b343b1bf76a919b8809, type: 3}
+  - Capability: alarm.detector
+    Prefab: {fileID: 3262358332881692543, guid: c9f8db8fc27e83344b219be49d03abb1, type: 3}
+  - Capability: extinguisher.portable
+    Prefab: {fileID: 8549444384947703746, guid: 0d57e1e8dcd3b4048a41ea40079d6556, type: 3}
+  - Capability: water.sink
+    Prefab: {fileID: 349661753029344890, guid: f9be219108f673241b09339555817e96, type: 3}
+  - Capability: water.bath
+    Prefab: {fileID: 6174723481715193843, guid: 25b1b3b62feff5645a7bc92719e079ef, type: 3}
+  - Capability: water.shower
+    Prefab: {fileID: 1787945900363554216, guid: 9a941c20deb0b654aa057c3bb832fe24, type: 3}
+  - Capability: item.towel
+    Prefab: {fileID: 401465469324502829, guid: 317a78e756f379c48a485f081d88c330, type: 3}
+  - Capability: transport.elevator
+    Prefab: {fileID: 2918475556519757767, guid: 36c7e46abd2898346988d18c7e613aac, type: 3}
+  - Capability: bait.belongings
+    Prefab: {fileID: 7877220882927243034, guid: 35b9f43fbb242494f829e1a754236f6d, type: 3}
+  - Capability: suppression.sprinkler
+    Prefab: {fileID: 7673010690039564176, guid: b335d0fcbd3cd144799132d3d4c7ed83, type: 3}
+  PlayerPrefab: {fileID: 2813855588477982115, guid: bffa16754d7c02040bb44ed0d69a4e41, type: 3}
+  NpcPrefab: {fileID: 9036844099690812783, guid: 203df090b86156540b77c94110273213, type: 3}
+  FirePrefab: {fileID: 4327789685908721820, guid: 7f519b416f16ead4196ba85dd04c15bd, type: 3}
+  SmokePrefab: {fileID: 4941363268427266430, guid: ce64e6590c90cdf4dbd48c04182d1065, type: 3}
+  SprayPrefab: {fileID: 0}
+  SprinklerPrefab: {fileID: 0}
+  Materials: {fileID: 11400000, guid: 111609b751f7dbb4287d290b3adbe400, type: 2}
+  AlarmClip: {fileID: 0}

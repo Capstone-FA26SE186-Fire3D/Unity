@@ -1,0 +1,18 @@
+{
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "Newtonsoft.Json.dll"
+    ],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false,
+    "name": "Fire3D.Unity.Contracts",
+    "rootNamespace": "Fire3D.Contracts",
+    "references": [
+        "Unity.Mathematics"
+    ]
+}
