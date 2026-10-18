@@ -362,64 +362,11 @@ namespace Fire3D.Unity.Editor.Development
             }
         }
 
-        private static void RoomLights(string name, string category, float x0, float z0, float x1, float z1, float e, Transform parent)
-        {
-            var spacing = category == "corridor" ? 4f : 5f;
-            var nx = Mathf.Max(1, Mathf.RoundToInt((x1 - x0) / spacing));
-            var nz = Mathf.Max(1, Mathf.RoundToInt((z1 - z0) / spacing));
-            for (var i = 0; i < nx; i++)
-            for (var k = 0; k < nz; k++)
-            {
-                var p = new Vector3(x0 + (i + 0.5f) * (x1 - x0) / nx, e + WallHeight - 0.15f, z0 + (k + 0.5f) * (z1 - z0) / nz);
-                var go = new GameObject($"{name}_Light_{i}_{k}");
-                go.transform.SetParent(parent, false);
-                go.transform.position = p;
-                var l = go.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = new Color(1f, 0.9f, 0.78f);
-                l.intensity = 1.4f;
-                l.range = Mathf.Max(5f, spacing * 1.25f);
-                l.shadows = LightShadows.Soft;
-                l.lightmapBakeType = LightmapBakeType.Realtime;
-                go.AddComponent<LightGroupMember>().Group = LightGroup.Normal;
+        private static void RoomLights(string name, string category, float x0, float z0, float x1, float z1, float e, Transform parent) =>
+            LightRig.Room(name, category, new Bounds(new Vector3((x0 + x1) * 0.5f, e + WallHeight * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, WallHeight, z1 - z0)),
+                e + WallHeight, parent);
 
-                var panel = GrayboxMesh.Create($"{name}_Panel_{i}_{k}", parent, p + Vector3.up * 0.13f, new Vector3(0.6f, 0.02f, 0.6f),
-                    PrototypeFactory.Lit(Color.white, 0.2f, 0f, new Color(1f, 0.92f, 0.8f) * 2.2f), false);
-                panel.AddComponent<LightGroupMember>().Group = LightGroup.Normal;
-            }
-
-            if (category is "corridor" or "stair" or "lobby")
-            {
-                var em = new GameObject($"{name}_Emergency");
-                em.transform.SetParent(parent, false);
-                em.transform.position = new Vector3((x0 + x1) * 0.5f, e + WallHeight - 0.3f, (z0 + z1) * 0.5f);
-                var l = em.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = new Color(1f, 0.32f, 0.22f);
-                l.intensity = 0.9f;
-                l.range = 9f;
-                l.enabled = false;
-                l.lightmapBakeType = LightmapBakeType.Realtime;
-                em.AddComponent<LightGroupMember>().Group = LightGroup.Emergency;
-            }
-        }
-
-        private static void ExitSign(Vector3 pos, Quaternion rot, Transform parent)
-        {
-            var sign = GrayboxMesh.Create("ExitSign", parent, pos, new Vector3(0.36f, 0.16f, 0.04f),
-                PrototypeFactory.Lit(new Color(0.1f, 0.8f, 0.3f), 0.3f, 0f, new Color(0.1f, 1f, 0.35f) * 2.5f), false);
-            sign.transform.rotation = rot;
-            sign.AddComponent<LightGroupMember>().Group = LightGroup.ExitSign;
-            var glow = new GameObject("ExitGlow").AddComponent<Light>();
-            glow.transform.SetParent(sign.transform, false);
-            glow.transform.localPosition = new Vector3(0f, -0.2f, -0.2f);
-            glow.type = LightType.Point;
-            glow.color = new Color(0.25f, 1f, 0.45f);
-            glow.intensity = 0.6f;
-            glow.range = 3f;
-            glow.lightmapBakeType = LightmapBakeType.Realtime;
-            glow.gameObject.AddComponent<LightGroupMember>().Group = LightGroup.ExitSign;
-        }
+        private static void ExitSign(Vector3 pos, Quaternion rot, Transform parent) => LightRig.ExitSign(pos, rot, parent);
 
         private static void AddSpace(string id, string category, Bounds bounds, string floorId, string name = null, bool register = true)
         {
@@ -446,14 +393,27 @@ namespace Fire3D.Unity.Editor.Development
             var profile = ScriptableObject.CreateInstance<UnityEngine.Rendering.VolumeProfile>();
             var tone = profile.Add<UnityEngine.Rendering.Universal.Tonemapping>(true);
             tone.mode.Override(UnityEngine.Rendering.Universal.TonemappingMode.ACES);
+            // Soft bloom: low threshold + wide scatter turns lamps, fire and exit signs into glows rather than hard blobs.
             var bloom = profile.Add<UnityEngine.Rendering.Universal.Bloom>(true);
-            bloom.intensity.Override(0.6f);
-            bloom.threshold.Override(1.1f);
+            bloom.intensity.Override(0.55f);
+            bloom.threshold.Override(0.85f);
+            bloom.scatter.Override(0.72f);
+            bloom.tint.Override(new Color(1f, 0.9f, 0.8f));
+            bloom.highQualityFiltering.Override(false);
+            bloom.downscale.Override(UnityEngine.Rendering.Universal.BloomDownscaleMode.Half);
             var color = profile.Add<UnityEngine.Rendering.Universal.ColorAdjustments>(true);
-            color.postExposure.Override(0.25f);
-            color.contrast.Override(8f);
+            color.postExposure.Override(0.15f);
+            color.contrast.Override(6f);
+            color.saturation.Override(6f);
+            var white = profile.Add<UnityEngine.Rendering.Universal.WhiteBalance>(true);
+            white.temperature.Override(8f);
+            // Warm the lights, cool the shadows: gives depth without extra lights.
+            var smh = profile.Add<UnityEngine.Rendering.Universal.ShadowsMidtonesHighlights>(true);
+            smh.shadows.Override(new Vector4(0.92f, 0.96f, 1.08f, 0f));
+            smh.highlights.Override(new Vector4(1.06f, 1.0f, 0.92f, 0f));
             var vignette = profile.Add<UnityEngine.Rendering.Universal.Vignette>(true);
-            vignette.intensity.Override(0.22f);
+            vignette.intensity.Override(0.2f);
+            vignette.smoothness.Override(0.55f);
             Directory.CreateDirectory("Assets/_Fire3D/Settings");
             AssetDatabase.CreateAsset(profile, "Assets/_Fire3D/Settings/TrainingPostProcess.asset");
             volume.sharedProfile = profile;

@@ -97,6 +97,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             public BuildTarget Target = BuildTarget.Android;
             public bool UseGpu;
             public bool Bake = true;
+
+            /// <summary>Clone imported meshes with lightmap UVs and clean normals/tangents (default). Off only to compare.</summary>
+            public bool PrepareMeshes = true;
         }
 
         public sealed class Result
@@ -195,6 +198,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 br.Elevation = storey.Elevation;
 
                 AssignMaterials(root, building, library, work, result);
+                if (req.PrepareMeshes)
+                    PrepareMeshes(root, $"{work}/Meshes_{Sanitize(storey.FloorId)}", result);
                 AddColliders(root);
                 MarkElements(root, building, storey, result);
                 AddSpacesAndLights(root, building, storey, chunks.Count == 1);
@@ -359,6 +364,57 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
             foreach (var u in unmapped.Where(u => !string.IsNullOrEmpty(u)))
                 result.Warnings.Add($"IFC_UNMAPPED_MATERIAL: '{u}' keeps its glTF material.");
+        }
+
+        /// <summary>
+        /// GLB meshes from the IFC pipeline carry one UV set for textures. Baked lighting needs a second, non-overlapping
+        /// set (UV2): without it the bake reuses UV1, where tiled faces overlap, and walls come out blotchy and
+        /// streaked. Each distinct mesh is cloned once (imported assets are read-only), unwrapped, given tangents for
+        /// the normal maps and saved next to the scene so the AssetBundle carries it.
+        /// </summary>
+        private static void PrepareMeshes(GameObject root, string folder, Result result)
+        {
+            Directory.CreateDirectory(folder);
+            var clones = new Dictionary<Mesh, Mesh>();
+            var failed = 0;
+            foreach (var mf in root.GetComponentsInChildren<MeshFilter>(true))
+            {
+                var src = mf.sharedMesh;
+                if (src == null)
+                    continue;
+                if (!clones.TryGetValue(src, out var mesh))
+                {
+                    mesh = UnityEngine.Object.Instantiate(src);
+                    mesh.name = src.name;
+                    if (mesh.normals == null || mesh.normals.Length != mesh.vertexCount)
+                        mesh.RecalculateNormals();
+                    if (mesh.uv2 == null || mesh.uv2.Length == 0)
+                    {
+                        try
+                        {
+                            Unwrapping.GenerateSecondaryUVSet(mesh, new UnwrapParam
+                            {
+                                hardAngle = 88f, angleError = 0.08f, areaError = 0.15f, packMargin = 4f / 1024f,
+                            });
+                        }
+                        catch (Exception ex)
+                        {
+                            failed++;
+                            Debug.LogWarning($"[Fire3D worker] lightmap UVs failed for '{src.name}': {ex.Message}");
+                        }
+                    }
+
+                    if (mesh.uv != null && mesh.uv.Length == mesh.vertexCount)
+                        mesh.RecalculateTangents();
+                    AssetDatabase.CreateAsset(mesh, $"{folder}/{clones.Count:D4}_{Sanitize(src.name)}.asset");
+                    clones[src] = mesh;
+                }
+
+                mf.sharedMesh = mesh;
+            }
+
+            if (failed > 0)
+                result.Warnings.Add($"IFC_LIGHTMAP_UV_FAILED: {failed} mesh(es) keep a single UV set; their baked lighting may look streaked.");
         }
 
         private static void AddColliders(GameObject root)

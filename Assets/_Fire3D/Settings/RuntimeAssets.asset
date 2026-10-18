@@ -35,8 +35,8 @@ MonoBehaviour:
     Prefab: {fileID: 7673010690039564176, guid: b335d0fcbd3cd144799132d3d4c7ed83, type: 3}
   PlayerPrefab: {fileID: 2813855588477982115, guid: bffa16754d7c02040bb44ed0d69a4e41, type: 3}
   NpcPrefab: {fileID: 9036844099690812783, guid: 203df090b86156540b77c94110273213, type: 3}
-  FirePrefab: {fileID: 4327789685908721820, guid: 7f519b416f16ead4196ba85dd04c15bd, type: 3}
-  SmokePrefab: {fileID: 4941363268427266430, guid: ce64e6590c90cdf4dbd48c04182d1065, type: 3}
+  FirePrefab: {fileID: 1854334049682896619, guid: 7f519b416f16ead4196ba85dd04c15bd, type: 3}
+  SmokePrefab: {fileID: 3567470755748239146, guid: ce64e6590c90cdf4dbd48c04182d1065, type: 3}
   SprayPrefab: {fileID: 0}
   SprinklerPrefab: {fileID: 0}
   Materials: {fileID: 11400000, guid: 111609b751f7dbb4287d290b3adbe400, type: 2}
