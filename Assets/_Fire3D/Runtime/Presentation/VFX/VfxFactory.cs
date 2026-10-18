@@ -180,25 +180,27 @@ namespace Fire3D.Unity.Presentation
             // Few big flipbook sprites (each one rolls inside itself) instead of thousands of small particles. Indoors a
             // sprite must stay smaller than the room: a quad wider than the corridor is cut straight by the walls and
             // the smoke reads as a black box. Black soot at the source, greying as it spreads and cools.
-            var ps = NewSystem(go, 26, 5f, 8f);
+            // More, smaller puffs per emitter (rather than a few room-sized ones): the cloud's outline becomes the sum of
+            // many curved edges, and nothing is wide enough to be sliced flat by a corridor wall.
+            var ps = NewSystem(go, 56, 4.5f, 7.5f);
             var main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(1.7f, 2.6f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.0f, 1.7f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.startColor = new Color(0.8f, 0.78f, 0.76f, 1f);
             var emission = ps.emission;
-            emission.rateOverTime = 3.2f;
+            emission.rateOverTime = 8.5f;
             var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.7f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.85f;
+            shape.radiusThickness = 1f;
             var rot = ps.rotationOverLifetime;
             rot.enabled = true;
             rot.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
             Flipbook(ps, tex?.Smoke != null);
-            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.16f, 0.6f, 0.78f);
-            Size(ps, 0.5f, 1f, 1.5f);
-            Turbulence(ps, 0.12f, 0.5f);
+            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.22f, 0.62f, 0.5f);
+            Size(ps, 0.55f, 1f, 1.35f);
+            Turbulence(ps, 0.16f, 0.45f);
             var sixWay = tex?.SmokeShader != null && tex.SmokeLightA != null && tex.SmokeLightB != null;
             var material = sixWay ? SixWaySmokeMaterial(tex) : Material(fire: false, tex?.Smoke, additive: false, lit: true);
             Render(go, material, sixWay || tex?.Smoke != null, 0.6f);
@@ -211,6 +213,8 @@ namespace Fire3D.Unity.Presentation
             m.SetTexture("_LightmapA", tex.SmokeLightA);
             m.SetTexture("_LightmapB", tex.SmokeLightB);
             m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_LightGain", 1.1f);
+            m.SetFloat("_Ambient", 1.1f);
             return m;
         }
 

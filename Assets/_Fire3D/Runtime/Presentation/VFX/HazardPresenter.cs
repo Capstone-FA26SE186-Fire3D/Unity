@@ -92,9 +92,12 @@ namespace Fire3D.Unity.Presentation
             _candidates.Sort((a, b) => b.score.CompareTo(a.score));
             Assign(_fires, maxFires, _candidates, true);
 
+            // Smoke candidates on a staggered lattice (odd rows shifted) so emitters never line up along a corridor
+            // axis: a straight row of equal clouds reads as a row of cards. Stride 4 cells = 2 m.
             _candidates.Clear();
-            for (var dz = -r; dz <= r; dz += 5)
-            for (var dx = -r; dx <= r; dx += 5)
+            var row = 0;
+            for (var dz = -r; dz <= r; dz += 4, row++)
+            for (var dx = -r + (row % 2 == 0 ? 0 : 2); dx <= r; dx += 4)
             {
                 if (!layout.InBounds(floor, c.x + dx, c.z + dz))
                     continue;
@@ -127,13 +130,27 @@ namespace Fire3D.Unity.Presentation
 
                 var i = cells[k].cell;
                 var center = (Vector3)grid.Layout.CellCenter(i);
-                // Hot smoke collects under the ceiling: the denser the cell, the higher the emitter (ceiling is 3 m above the slab).
-                ps.transform.position = fire ? center : center + Vector3.up * Mathf.Lerp(1.4f, 2.55f, Mathf.Clamp01(grid.Smoke[i]));
                 var value = fire ? grid.Fire[i] : grid.Smoke[i];
-                // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
-                var target = fire ? Mathf.Lerp(0.55f, 1.4f, value) : Mathf.Lerp(0.75f, 1.25f, value);
-                if (!fire)
+                float target;
+                if (fire)
                 {
+                    ps.transform.position = center;
+                    // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
+                    target = Mathf.Lerp(0.55f, 1.4f, value);
+                }
+                else
+                {
+                    // Jitter inside the cell, deterministic per cell so an emitter does not drift between refreshes.
+                    var jx = Mathf.PerlinNoise(i * 0.173f, 0.37f) - 0.5f;
+                    var jz = Mathf.PerlinNoise(0.61f, i * 0.131f) - 0.5f;
+                    var at = center + new Vector3(jx, 0f, jz) * grid.Layout.CellSize * 1.6f;
+                    // Hot smoke collects under the ceiling: the denser the cell, the higher the emitter.
+                    at.y += Mathf.Lerp(1.4f, 2.4f, Mathf.Clamp01(value));
+                    ps.transform.position = at;
+                    // Free width around the emitter: a sprite wider than the room gets sliced flat by the walls, so
+                    // scale the whole system to the clearance (0.8 of the narrowest free span). 2.2 m = sprite size at scale 1.
+                    var sizeCap = Mathf.Clamp(FreeSpan(at) * 0.8f / 2.2f, 0.45f, 1.25f);
+                    target = Mathf.Min(Mathf.Lerp(0.75f, 1.25f, value), sizeCap);
                     // Thin smoke stays see-through so billows show; dense smoke builds up to near opaque.
                     var sm = ps.main;
                     sm.startColor = new Color(0.8f, 0.78f, 0.76f, Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(value)));
@@ -146,6 +163,28 @@ namespace Fire3D.Unity.Presentation
                 if (!ps.isEmitting)
                     ps.Play(true);
             }
+        }
+
+        private static readonly Vector3[] SpanDirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+
+        /// <summary>Narrowest wall-to-wall distance through <paramref name="at"/> along the grid axes (meters, capped at 8).</summary>
+        private static float FreeSpan(Vector3 at)
+        {
+            var best = 8f;
+            for (var axis = 0; axis < 2; axis++)
+            {
+                var span = 0f;
+                for (var side = 0; side < 2; side++)
+                {
+                    var hitWall = Physics.Raycast(at, SpanDirs[axis * 2 + side], out var hit, 4f, ~0, QueryTriggerInteraction.Ignore)
+                                  && !(hit.collider is CharacterController);
+                    span += hitWall ? hit.distance : 4f;
+                }
+
+                best = Mathf.Min(best, span);
+            }
+
+            return best;
         }
 
         private bool _anyHaze;

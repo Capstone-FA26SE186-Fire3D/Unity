@@ -14,6 +14,7 @@ Shader "Fire3D/SmokeSixWay"
         _Ambient ("Ambient Strength", Range(0, 2)) = 0.9
         _LightGain ("Light Gain", Range(0, 4)) = 1.6
         _SoftDistance ("Soft Particle Distance", Float) = 2.0
+        _OccludeFade ("Fade when behind geometry (m)", Float) = 0.9
         _CameraFade ("Camera Fade Near, Far", Vector) = (0.3, 1.6, 0, 0)
     }
 
@@ -27,6 +28,7 @@ Shader "Fire3D/SmokeSixWay"
             Tags { "LightMode" = "UniversalForward" }
             Blend SrcAlpha OneMinusSrcAlpha
             ZWrite Off
+            ZTest Always
             Cull Off
 
             HLSLPROGRAM
@@ -70,6 +72,7 @@ Shader "Fire3D/SmokeSixWay"
                 half _Ambient;
                 half _LightGain;
                 float _SoftDistance;
+                float _OccludeFade;
                 float4 _CameraFade;
             CBUFFER_END
 
@@ -130,9 +133,11 @@ Shader "Fire3D/SmokeSixWay"
                 float2 suv = i.screen.xy / i.screen.w;
                 float sceneEye = LinearEyeDepth(SampleSceneDepth(suv), _ZBufferParams);
                 float fragEye = i.screen.w;
-                // Smoothstepped and wide: seen at a grazing angle (corridor walls) a narrow linear fade turns into
-                // straight vertical edges where the sprite plane crosses the wall.
-                float soft = saturate((sceneEye - fragEye) / max(_SoftDistance, 0.01));
+                // Depth test is off (ZTest Always): instead of the wall slicing the puff with a hard edge, the part of
+                // the puff behind a surface dissolves over _OccludeFade metres, and the part in front of a surface
+                // fades in over _SoftDistance. Both smoothstepped so a wall crossed at a grazing angle leaves no line.
+                float depthDelta = sceneEye - fragEye; // > 0: puff in front of the wall; < 0: behind it
+                float soft = saturate((depthDelta + _OccludeFade) / max(_SoftDistance + _OccludeFade, 0.01));
                 alpha *= soft * soft * (3.0 - 2.0 * soft);
                 float nearFade = saturate((fragEye - _CameraFade.x) / max(_CameraFade.y - _CameraFade.x, 0.01));
                 alpha *= nearFade * nearFade * (3.0 - 2.0 * nearFade);

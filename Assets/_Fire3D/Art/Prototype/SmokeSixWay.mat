@@ -33,8 +33,9 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _Ambient: 0.9
-    - _LightGain: 1.6
+    - _Ambient: 1.1
+    - _LightGain: 1.1
+    - _OccludeFade: 0.9
     - _SoftDistance: 2
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
