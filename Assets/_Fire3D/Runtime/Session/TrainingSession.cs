@@ -54,6 +54,9 @@ namespace Fire3D.Unity.Session
 
         public SessionPhase Phase { get; private set; }
         public SessionEventLog Log => _log;
+
+        /// <summary>The bridge this session reports to (tests read what was sent).</summary>
+        public IFire3DBridge Bridge => _bridge;
         public FireSimulation Simulation => _world?.Simulation;
         public PlayerMotor Player => _player;
         public InteractionController Interaction => _interaction;
@@ -112,6 +115,12 @@ namespace Fire3D.Unity.Session
                 OnResume = () => SetPaused(false),
                 OnAbandon = () => End(EndReason.Abandoned),
                 OnExit = Exit,
+                OnToggleView = () =>
+                {
+                    if (_player.CameraRig != null)
+                        _player.CameraRig.FirstPerson = !_player.CameraRig.FirstPerson;
+                },
+                IsFirstPerson = () => _player.CameraRig != null && _player.CameraRig.FirstPerson,
             }, _interaction, _vitals, _player, _input);
             _ctx.Message += _hud.Toast;
 
@@ -175,10 +184,17 @@ namespace Fire3D.Unity.Session
             sim.SetPlayer(_player.transform.position);
             sim.Advance(dt);
 
-            var head = _player.transform.position + Vector3.up * (_player.Crouched ? 0.9f : 1.5f);
-            var sample = sim.Grid.Sample(new float3(head.x, _player.transform.position.y + 0.1f, head.z));
+            var feet = _player.transform.position;
+            var head = feet + Vector3.up * _player.HeadHeight;
+            var sample = sim.Grid.Sample(new float3(head.x, feet.y + 0.1f, head.z));
+            // Real smoke pools under the ceiling and creeps down: you breathe it only once your head is inside the
+            // layer, which is why crouching and crawling work. Within the layer, the first 0.5 m is a soft edge.
+            var inLayer = Mathf.Clamp01((head.y - sample.LayerBottomY + 0.25f) / 0.35f);
+            sample.Smoke *= inLayer;
+            sample.Visibility = Mathf.Lerp(1f, sample.Visibility, inLayer);
             _vitals.Apply(sample, _player.Crouched, _player.Running, dt);
             _player.SpeedFactor = 1f - 0.45f * (_vitals.Valid() ? _vitals.LocalSmoke : 0f) * (_player.Crouched ? 0.3f : 1f);
+            UpdateSmokeHint(sample, head.y);
 
             foreach (var exit in _world.Exits)
                 exit.Check(_player.transform.position);
@@ -208,6 +224,23 @@ namespace Fire3D.Unity.Session
                 _nextFlush = Time.time + FlushIntervalSeconds;
                 Flush();
             }
+        }
+
+        private float _nextSmokeHint;
+
+        /// <summary>Guided mode: tell the learner to get low when the layer reaches their head, and lower when crouching is not enough.</summary>
+        private void UpdateSmokeHint(in HazardSample sample, float headY)
+        {
+            if (!_ctx.Guided || Time.time < _nextSmokeHint || sample.Smoke < 0.08f)
+                return;
+            var clearance = sample.LayerBottomY - headY;
+            if (clearance > 0.2f)
+                return;
+            _nextSmokeHint = Time.time + 12f;
+            if (!_player.Crouched)
+                _ctx.Hint("Khói đang hạ thấp. Hãy cúi người để đầu ở dưới lớp khói.");
+            else if (!_player.Crawling)
+                _ctx.Hint("Khói xuống sát đầu. Bấm Cúi thấp lần nữa để bò.");
         }
 
         private void EmitPeriodic()

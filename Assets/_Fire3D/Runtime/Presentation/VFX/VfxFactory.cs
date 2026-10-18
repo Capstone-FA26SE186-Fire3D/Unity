@@ -11,6 +11,9 @@ namespace Fire3D.Unity.Presentation
         public Texture2D Glow;    // soft radial dot.
         public Texture2D Haze;    // tileable RG distortion noise.
         public Shader HazeShader;
+        public Texture2D SmokeLightA; // six-way lit smoke: R right, G top, B back, A transparency.
+        public Texture2D SmokeLightB; // R left, G bottom, B front.
+        public Shader SmokeShader;
     }
 
     /// <summary>
@@ -108,7 +111,7 @@ namespace Fire3D.Unity.Presentation
             vel.enabled = true;
             vel.space = ParticleSystemSimulationSpace.World;
             vel.x = new ParticleSystem.MinMaxCurve(-0.25f, 0.45f); // a faint draught drifts them one way
-            vel.y = 0f;
+            vel.y = new ParticleSystem.MinMaxCurve(0f, 0f); // all three axes must use the same curve mode
             vel.z = new ParticleSystem.MinMaxCurve(-0.15f, 0.15f);
             var r = Render(go, Material(fire: true, tex?.Glow, additive: true, lit: false, flipbook: false), false, 0f);
             r.renderMode = ParticleSystemRenderMode.Billboard;
@@ -174,27 +177,48 @@ namespace Fire3D.Unity.Presentation
 
         private static ParticleSystem Smoke(GameObject go, VfxTextures tex)
         {
-            var ps = NewSystem(go, 40, 4f, 7f);
+            // Few big flipbook sprites (each one rolls inside itself) instead of thousands of small particles. Indoors a
+            // sprite must stay smaller than the room: a quad wider than the corridor is cut straight by the walls and
+            // the smoke reads as a black box. Black soot at the source, greying as it spreads and cools.
+            // More, smaller puffs per emitter (rather than a few room-sized ones): the cloud's outline becomes the sum of
+            // many curved edges, and nothing is wide enough to be sliced flat by a corridor wall.
+            // Emission/shape are overridden by VolumeSmoke at runtime (it emits straight into smoky grid cells);
+            // the values here only matter for the prefab preview.
+            var ps = NewSystem(go, 1200, 4.5f, 7.5f);
             var main = ps.main;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.12f, 0.35f);
-            main.startSize = new ParticleSystem.MinMaxCurve(2.4f, 3.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.0f, 1.7f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.startColor = new Color(0.36f, 0.34f, 0.33f, 1f);
+            main.startColor = new Color(0.8f, 0.78f, 0.76f, 1f);
             var emission = ps.emission;
-            emission.rateOverTime = 4f;
+            emission.rateOverTime = 8.5f;
             var shape = ps.shape;
-            shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.8f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
+            shape.shapeType = ParticleSystemShapeType.Sphere;
+            shape.radius = 0.85f;
+            shape.radiusThickness = 1f;
             var rot = ps.rotationOverLifetime;
             rot.enabled = true;
-            rot.z = new ParticleSystem.MinMaxCurve(-0.25f, 0.25f);
+            rot.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
             Flipbook(ps, tex?.Smoke != null);
-            Fade(ps, new Color(0.42f, 0.36f, 0.32f), new Color(0.3f, 0.29f, 0.28f), new Color(0.22f, 0.22f, 0.22f), 0.2f, 0.55f, 0.62f);
-            Size(ps, 0.55f, 1f, 1.7f);
-            Turbulence(ps, 0.12f, 0.5f);
-            Render(go, Material(fire: false, tex?.Smoke, additive: false, lit: true), tex?.Smoke != null, 0.6f);
+            // Neutral ramp: colour comes from VolumeSmoke per puff (fresh pale → aged soot); this only fades in/out.
+            Fade(ps, Color.white, Color.white, Color.white, 0.22f, 0.62f, 0.5f);
+            Size(ps, 0.55f, 1f, 1.35f);
+            Turbulence(ps, 0.16f, 0.45f);
+            var sixWay = tex?.SmokeShader != null && tex.SmokeLightA != null && tex.SmokeLightB != null;
+            var material = sixWay ? SixWaySmokeMaterial(tex) : Material(fire: false, tex?.Smoke, additive: false, lit: true);
+            Render(go, material, sixWay || tex?.Smoke != null, 0.6f);
             return ps;
+        }
+
+        private static Material SixWaySmokeMaterial(VfxTextures tex)
+        {
+            var m = new Material(tex.SmokeShader) { name = "SmokeSixWay", renderQueue = (int)RenderQueue.Transparent };
+            m.SetTexture("_LightmapA", tex.SmokeLightA);
+            m.SetTexture("_LightmapB", tex.SmokeLightB);
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_LightGain", 0.75f);
+            m.SetFloat("_Ambient", 1.2f);
+            return m;
         }
 
         // ---- Building blocks -----------------------------------------------------------------------------------

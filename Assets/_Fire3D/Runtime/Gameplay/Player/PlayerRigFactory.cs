@@ -56,6 +56,12 @@ namespace Fire3D.Unity.Gameplay.Player
                 camGo = cam.gameObject;
             }
 
+            // Dithering hides 8-bit banding in smooth dark gradients (smoke, vignettes, outage lighting), which otherwise
+            // shows up as hard vertical bands on walls.
+            if (!camGo.TryGetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(out var urp))
+                urp = camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
+            urp.renderPostProcessing = true;
+            urp.dithering = true;
             cam.fieldOfView = 62f;
             cam.farClipPlane = 250f;
             var rig = camGo.GetComponent<ThirdPersonCameraRig>();
@@ -64,6 +70,7 @@ namespace Fire3D.Unity.Gameplay.Player
             rig.Target = player.transform;
             rig.InputSource = player.GetComponent<GameplayInputReader>();
             motor.CameraRig = rig;
+            rig.FollowVelocity = () => motor.PlanarVelocity;
             motor.InputSource = rig.InputSource;
             return player;
         }

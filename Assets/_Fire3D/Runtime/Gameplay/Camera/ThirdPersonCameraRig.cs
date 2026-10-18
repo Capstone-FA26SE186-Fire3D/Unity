@@ -35,11 +35,20 @@ namespace Fire3D.Unity.Gameplay.Cameras
         [SerializeField] private float crouchPivotHeight = 1.0f;
         [SerializeField] private float shoulderOffset = 0.25f;
         [SerializeField] private Vector2 pitchLimits = new(-25f, 70f);
-        [SerializeField] private float initialPitch = 18f;
-        [SerializeField] private Vector2 distanceLimits = new(1.4f, 5f);
-        [SerializeField] private float initialDistance = 3.2f;
-        [SerializeField] private float collisionRadius = 0.22f;
-        [SerializeField] private float collisionPadding = 0.06f;
+        [SerializeField] private Vector2 firstPersonPitchLimits = new(-70f, 75f);
+        [SerializeField] private float initialPitch = 14f;
+        [SerializeField] private Vector2 distanceLimits = new(1.2f, 4f);
+        [SerializeField] private float initialDistance = 2.4f;
+        [SerializeField] private float standingEyeHeight = 1.62f;
+        [SerializeField] private float crouchEyeHeight = 1.08f;
+        [SerializeField] private float viewBlendSeconds = 0.25f;
+        [SerializeField] private bool autoFollow = true;
+        [SerializeField] private float followDegreesPerSecond = 80f;
+        [SerializeField] private float followDelaySeconds = 0.6f;
+        [SerializeField] private float followMaxAngle = 150f;
+        [SerializeField] private float collisionRadius = 0.28f;
+        [SerializeField] private float collisionPadding = 0.12f;
+        [SerializeField] private float clearanceRadius = 0.16f;
         [SerializeField] private float minCollisionDistance = 0.3f;
         [SerializeField] private float recoverSpeed = 2.5f;
         [SerializeField] private float followSharpness = 18f;
@@ -57,12 +66,26 @@ namespace Fire3D.Unity.Gameplay.Cameras
         private Vector3 _smoothedPivot;
         private bool _targetHidden;
         private bool _snapped;
+        private float _firstPersonBlend;
+        private float _sinceLook = 10f;
+
+        /// <summary>Planar velocity of the followed character (set by the rig factory); drives the auto-follow yaw.</summary>
+        public System.Func<Vector3> FollowVelocity { get; set; }
 
         public float Yaw => _yaw;
         public float Pitch => _pitch;
         public float CurrentDistance => _currentDistance;
         public float DesiredDistance => _desiredDistance;
         public bool Crouched { get; set; }
+
+        /// <summary>
+        /// First-person view (PUBG-style toggle): the camera sits at the eyes, the body is hidden and the player faces
+        /// where the camera looks. The switch blends over <see cref="viewBlendSeconds"/>.
+        /// </summary>
+        public bool FirstPerson { get; set; }
+
+        /// <summary>1 when fully first-person, 0 when fully third-person.</summary>
+        public float FirstPersonBlend => _firstPersonBlend;
 
         public IGameplayInputSource InputSource
         {
@@ -105,6 +128,14 @@ namespace Fire3D.Unity.Gameplay.Cameras
             _shakeUntil = Time.time + _shakeSeconds;
         }
 
+        /// <summary>Points the camera behind the target with an explicit pitch (degrees, positive looks down).</summary>
+        public void Snap(float yawDegrees, float pitchDegrees)
+        {
+            _yaw = yawDegrees;
+            _pitch = Mathf.Clamp(pitchDegrees, pitchLimits.x, pitchLimits.y);
+            _snapped = false;
+        }
+
         /// <summary>Points the camera behind the target, e.g. after spawning.</summary>
         public void SnapBehind(float yawDegrees)
         {
@@ -126,13 +157,20 @@ namespace Fire3D.Unity.Gameplay.Cameras
         public void Step(float deltaTime)
         {
             var frame = _input?.Current ?? default;
+            _firstPersonBlend = Mathf.MoveTowards(_firstPersonBlend, FirstPerson ? 1f : 0f, deltaTime / Mathf.Max(0.01f, viewBlendSeconds));
+            var fp = _firstPersonBlend * _firstPersonBlend * (3f - 2f * _firstPersonBlend);
+            var limits = Vector2.Lerp(pitchLimits, firstPersonPitchLimits, fp);
             _yaw = Mathf.Repeat(_yaw + frame.LookDegrees.x, 360f);
-            _pitch = Mathf.Clamp(_pitch + frame.LookDegrees.y, pitchLimits.x, pitchLimits.y);
+            _pitch = Mathf.Clamp(_pitch + frame.LookDegrees.y, limits.x, limits.y);
+            _sinceLook = frame.LookDegrees.sqrMagnitude > 1e-6f ? 0f : _sinceLook + deltaTime;
+            AutoFollow(fp, deltaTime);
             _desiredDistance = Mathf.Clamp(_desiredDistance + frame.ZoomMeters, distanceLimits.x, distanceLimits.y);
 
-            _pivotHeight = Mathf.MoveTowards(_pivotHeight, Crouched ? crouchPivotHeight : standingPivotHeight, 3f * deltaTime);
+            var thirdHeight = Crouched ? crouchPivotHeight : standingPivotHeight;
+            var eyeHeight = Crouched ? crouchEyeHeight : standingEyeHeight;
+            _pivotHeight = Mathf.MoveTowards(_pivotHeight, Mathf.Lerp(thirdHeight, eyeHeight, fp), 3f * deltaTime);
             var rotation = Quaternion.Euler(_pitch, _yaw, 0f);
-            var targetPivot = target.position + Vector3.up * _pivotHeight + rotation * Vector3.right * shoulderOffset;
+            var targetPivot = target.position + Vector3.up * _pivotHeight + rotation * Vector3.right * (shoulderOffset * (1f - fp));
             if (!_snapped)
             {
                 _smoothedPivot = targetPivot;
@@ -147,10 +185,19 @@ namespace Fire3D.Unity.Gameplay.Cameras
             var head = target.position + Vector3.up * _pivotHeight;
             var pivot = SafePivot(head, _smoothedPivot);
             var back = rotation * Vector3.back;
-            var hit = CastObstacle(pivot, back, _desiredDistance + collisionPadding);
-            _currentDistance = CameraCollisionSolver.Resolve(_currentDistance, _desiredDistance, hit, collisionPadding,
-                minCollisionDistance, recoverSpeed, deltaTime);
+            var wanted = _desiredDistance * (1f - fp);
+            var hit = CastObstacle(pivot, back, wanted + collisionPadding);
+            // While the view blends, follow the blended distance directly (collision still clamps it); the slow recovery
+            // is for easing back out from a wall, not for the view switch.
+            var blending = _firstPersonBlend > 0f && _firstPersonBlend < 1f;
+            _currentDistance = fp >= 0.999f
+                ? 0f
+                : CameraCollisionSolver.Resolve(_currentDistance, wanted, hit, collisionPadding, minCollisionDistance * (1f - fp), blending ? 100f : recoverSpeed, deltaTime);
 
+            // Last line of defence: whatever the cast missed (pivot almost inside a wall, thin geometry, steep pitch),
+            // never leave the camera touching a solid, where the near plane shows the other side of the wall.
+            for (var k = 0; k < 10 && Overlaps(pivot + back * _currentDistance); k++)
+                _currentDistance = k == 9 ? 0f : _currentDistance * 0.7f;
             var position = pivot + back * _currentDistance;
             var shake = _shakeUntil > Time.time ? _shakeAmplitude * (_shakeUntil - Time.time) / _shakeSeconds : 0f;
             if (shake > 0f)
@@ -161,6 +208,43 @@ namespace Fire3D.Unity.Gameplay.Cameras
 
             transform.SetPositionAndRotation(position, rotation);
             UpdateTargetVisibility();
+        }
+
+        /// <summary>
+        /// Third person only: when the player runs without touching the look control, the view swings round to follow
+        /// the running direction (faster the further it is off-screen), so turning a corner turns the scene as in
+        /// mobile shooters. Running straight at the camera does not flip the view.
+        /// </summary>
+        private void AutoFollow(float firstPersonBlend, float deltaTime)
+        {
+            if (!autoFollow || firstPersonBlend > 0.5f || _sinceLook < followDelaySeconds || FollowVelocity == null)
+                return;
+            var v = FollowVelocity();
+            v.y = 0f;
+            if (v.sqrMagnitude < 0.25f)
+                return;
+            var heading = Mathf.Atan2(v.x, v.z) * Mathf.Rad2Deg;
+            var delta = Mathf.DeltaAngle(_yaw, heading);
+            if (Mathf.Abs(delta) > followMaxAngle)
+                return;
+            var rate = followDegreesPerSecond * Mathf.Clamp01(Mathf.Abs(delta) / 60f);
+            _yaw = Mathf.Repeat(_yaw + Mathf.Clamp(delta, -rate * deltaTime, rate * deltaTime), 360f);
+        }
+
+        private readonly Collider[] _overlaps = new Collider[8];
+
+        private bool Overlaps(Vector3 point)
+        {
+            var n = Physics.OverlapSphereNonAlloc(point, clearanceRadius, _overlaps, obstacleMask, QueryTriggerInteraction.Ignore);
+            for (var i = 0; i < n; i++)
+            {
+                var c = _overlaps[i];
+                if ((target != null && c.transform.IsChildOf(target)) || c is CharacterController)
+                    continue;
+                return true;
+            }
+
+            return false;
         }
 
         private Vector3 SafePivot(Vector3 head, Vector3 desiredPivot)
@@ -195,7 +279,7 @@ namespace Fire3D.Unity.Gameplay.Cameras
 
         private void UpdateTargetVisibility()
         {
-            var hide = _currentDistance < hideTargetBelowDistance;
+            var hide = _currentDistance < hideTargetBelowDistance || _firstPersonBlend > 0.5f;
             if (hide == _targetHidden)
                 return;
             _targetHidden = hide;

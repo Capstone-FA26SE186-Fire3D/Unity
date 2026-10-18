@@ -47,6 +47,15 @@ namespace Fire3D.Unity.Development
         private int _doorsOpened;
         private float _nextShot;
         private int _crouchFrame = -1;
+        private CharacterController _cc;
+        private float _maxPenetration;
+        private string _maxPenetrationAt;
+        private float _maxSink;
+        private string _maxSinkAt;
+        private int _sunkFrames;
+        private int _cameraInsideFrames;
+        private string _cameraInsideFirstAt;
+        private readonly Dictionary<string, int> _cameraInsideByStep = new();
         private int _savedVSync;
         private int _savedTargetFps;
         private bool _uncapped;
@@ -94,9 +103,72 @@ namespace Fire3D.Unity.Development
 
         private void LateUpdate()
         {
-            if (_rec != null && !Finished)
-                _rec.Sample(_step);
+            if (_rec == null || Finished)
+                return;
+            _rec.Sample(_step);
+            TrackContacts();
         }
+
+        /// <summary>Per frame: how deep the capsule sits in level geometry, and whether the camera is inside a solid.</summary>
+        private void TrackContacts()
+        {
+            _cc ??= _player.GetComponent<CharacterController>();
+            if (_cc != null && _cc.enabled)
+            {
+                var p = _player.transform.position;
+                var r = _cc.radius;
+                var probe = _probe != null ? _probe : _probe = new GameObject("PenetrationProbe") { hideFlags = HideFlags.HideAndDontSave }.AddComponent<CapsuleCollider>();
+                probe.radius = r;
+                probe.height = _cc.height;
+                probe.center = _cc.center;
+                probe.isTrigger = true;
+                probe.transform.SetPositionAndRotation(p, _player.transform.rotation);
+                foreach (var c in Physics.OverlapCapsule(p + Vector3.up * r, p + Vector3.up * (_cc.height - r), r, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    if (c.transform.IsChildOf(_player.transform) || c is CharacterController)
+                        continue;
+                    if (Physics.ComputePenetration(probe, probe.transform.position, probe.transform.rotation, c, c.transform.position, c.transform.rotation, out _, out var d) && d > _maxPenetration)
+                    {
+                        _maxPenetration = d;
+                        _maxPenetrationAt = $"{Fmt(p)} step {_step} vs {c.name}";
+                    }
+                }
+            }
+
+            // Feet below the walking surface under them ("sinking into the floor").
+            var feet = _player.transform.position;
+            foreach (var hit in Physics.RaycastAll(feet + Vector3.up * 0.6f, Vector3.down, 2f, ~0, QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+            {
+                if (hit.collider.transform.IsChildOf(_player.transform) || hit.collider is CharacterController)
+                    continue;
+                var sink = hit.point.y - feet.y;
+                if (sink > 0.08f)
+                    _sunkFrames++;
+                if (sink > _maxSink)
+                {
+                    _maxSink = sink;
+                    _maxSinkAt = $"{Fmt(feet)} step {_step} on {hit.collider.name} (top {hit.point.y:F2})";
+                }
+
+                break;
+            }
+
+            var cam = Camera.main;
+            if (cam != null && Physics.CheckSphere(cam.transform.position, 0.08f, ~0, QueryTriggerInteraction.Ignore))
+            {
+                foreach (var c in Physics.OverlapSphere(cam.transform.position, 0.08f, ~0, QueryTriggerInteraction.Ignore))
+                {
+                    if (c.transform.IsChildOf(_player.transform) || c is CharacterController)
+                        continue;
+                    _cameraInsideFrames++;
+                    _cameraInsideByStep[_step] = _cameraInsideByStep.GetValueOrDefault(_step) + 1;
+                    _cameraInsideFirstAt ??= $"{Fmt(cam.transform.position)} inside {c.name} (player {Fmt(_player.transform.position)}, step {_step})";
+                    break;
+                }
+            }
+        }
+
+        private CapsuleCollider _probe;
 
         /// <summary>Window closed or Alt+F4 mid-run: keep what was measured.</summary>
         private void OnApplicationQuit()
@@ -107,6 +179,8 @@ namespace Fire3D.Unity.Development
 
         private void OnDestroy()
         {
+            if (_probe != null)
+                Destroy(_probe.gameObject);
             RestoreFrameRate();
             _nav?.Dispose();
             _rec?.Dispose();
@@ -528,6 +602,17 @@ namespace Fire3D.Unity.Development
                 ["rendering"] = _rec.Rendering(),
                 ["memory"] = _rec.Memory(),
                 ["stairs"] = new JArray(_nav.Stairs.Select(s => new JObject { ["top"] = Fmt(s.Top), ["bottom"] = Fmt(s.Bottom), ["topEntry"] = Fmt(s.TopEntry), ["bottomEntry"] = Fmt(s.BottomEntry) })),
+                ["contacts"] = new JObject
+                {
+                    ["maxCapsulePenetrationMeters"] = Math.Round(_maxPenetration, 3),
+                    ["maxCapsulePenetrationAt"] = _maxPenetrationAt,
+                    ["maxFeetBelowSurfaceMeters"] = Math.Round(_maxSink, 3),
+                    ["maxFeetBelowSurfaceAt"] = _maxSinkAt,
+                    ["framesFeetBelowSurface"] = _sunkFrames,
+                    ["cameraInsideGeometryFrames"] = _cameraInsideFrames,
+                    ["cameraInsideFirstAt"] = _cameraInsideFirstAt,
+                    ["cameraInsideByStep"] = JObject.FromObject(_cameraInsideByStep),
+                },
                 ["notes"] = new JArray(_notes),
                 ["screenshots"] = new JArray(_rec.Screenshots),
             };

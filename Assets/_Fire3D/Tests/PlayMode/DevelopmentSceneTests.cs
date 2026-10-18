@@ -28,11 +28,16 @@ namespace Fire3D.Unity.Tests.PlayModeTests
         {
             yield return SceneManager.LoadSceneAsync(Scene, LoadSceneMode.Single);
             yield return null;
-            _app = Object.FindAnyObjectByType<Fire3DApp>();
-            Assert.IsNotNull(_app, "Fire3DApp in dev scene");
             yield return null;
             _session = Object.FindAnyObjectByType<TrainingSession>();
             Assert.IsNotNull(_session, "DevLauncher should start a session");
+            // The app that owns this session: the one whose bridge saw this session launch. A previous test's scene
+            // can still be unloading for a frame, so FindAnyObjectByType alone may return a stale app.
+            _app = null;
+            foreach (var app in Object.FindObjectsByType<Fire3DApp>(FindObjectsSortMode.None))
+                if (((Fire3DBridge)app.Bridge).Sent.Any(m => m.Type == BridgeMessages.Launched))
+                    _app = app;
+            Assert.IsNotNull(_app, "Fire3DApp that launched the session");
             _session.StartRunning();
             yield return null;
         }
@@ -98,21 +103,27 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             var open = interaction.Actions.ToList().FindIndex(a => a.Id == "open");
             Assert.GreaterOrEqual(open, 0, "door offers Open");
             interaction.Press(open);
-            yield return new WaitForSeconds(0.8f);
+            // Opening is a hand gesture now (turn, reach, act, lower the hand) and the leaf then swings: wait for both.
+            while (interaction.Busy)
+                yield return null;
+            yield return new WaitForSeconds(1.0f);
 
-            for (var i = 0; i < 240 && _session.Phase == SessionPhase.Running; i++)
+            // Walk by real time, not frame count: the suite runs at very different frame rates.
+            var until = Time.time + 8f;
+            while (_session.Phase == SessionPhase.Running && Time.time < until)
             {
                 player.InputSource = new FixedInput(new Vector2(0f, 1f));
                 yield return null;
             }
 
-            Assert.AreEqual(SessionPhase.Ended, _session.Phase);
-            Assert.IsTrue(_session.Completion.ReachedExit);
-            Assert.AreEqual(EndReason.Finished, _session.Completion.EndReason);
-            Assert.AreEqual(1, _session.Log.Count(EventTypes.ExitReached));
-            var bridge = (Fire3DBridge)_app.Bridge;
-            Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Completed));
-            Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Events));
+            var state = $"phase {_session.Phase}, player {player.transform.position}, elapsed {_session.Elapsed:F1}s, completion {(_session.Completion == null ? "none" : $"reason {_session.Completion.EndReason} exit {_session.Completion.ReachedExit} collapsed {_session.Completion.Collapsed}")}";
+            Assert.AreEqual(SessionPhase.Ended, _session.Phase, state);
+            Assert.IsTrue(_session.Completion.ReachedExit, state);
+            Assert.AreEqual(EndReason.Finished, _session.Completion.EndReason, state);
+            Assert.AreEqual(1, _session.Log.Count(EventTypes.ExitReached), state);
+            var bridge = (Fire3DBridge)_session.Bridge; // the session's own bridge, never a stale app's
+            Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Completed), "Completed message sent; " + state);
+            Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Events), "Events message sent; " + state);
         }
 
         [UnityTest]

@@ -13,6 +13,10 @@ namespace Fire3D.Simulation
         public float Visibility;
         public CellFlags Flags;
         public bool Valid;
+        /// <summary>World Y of the underside of the smoke layer (ceiling when clear).</summary>
+        public float LayerBottomY;
+        /// <summary>Seconds the cell has held smoke (0 = none).</summary>
+        public float SmokeAgeSeconds;
     }
 
     /// <summary>
@@ -28,6 +32,18 @@ namespace Fire3D.Simulation
         public NativeArray<float> Fire;
         public NativeArray<float> Heat;
         public NativeArray<float> Smoke;
+
+        /// <summary>Thickness of the smoke layer hanging from the ceiling (m). Hot smoke pools under the ceiling and the
+        /// layer creeps down as more smoke arrives; it lifts again as the cell vents.</summary>
+        public NativeArray<float> SmokeLayer;
+
+        /// <summary>Seconds this cell has held smoke. Fresh smoke is pale (water vapour, early pyrolysis); it darkens
+        /// with age as soot builds up.</summary>
+        public NativeArray<float> SmokeAge;
+
+        /// <summary>Clear height of a storey (slab to ceiling) used for the layer model.</summary>
+        public const float CeilingHeight = 3.0f;
+        public const float MaxLayerThickness = 2.6f;
         /// <summary>Suppression rate per second (sprinklers, extinguisher bursts).</summary>
         public NativeArray<float> Suppression;
         /// <summary>Wind vector per cell in cells/second (XZ).</summary>
@@ -53,8 +69,48 @@ namespace Fire3D.Simulation
             HeatNext = new NativeArray<float>(n, Allocator.Persistent);
             SmokeNext = new NativeArray<float>(n, Allocator.Persistent);
             FuelNext = new NativeArray<float>(n, Allocator.Persistent);
+            SmokeLayer = new NativeArray<float>(n, Allocator.Persistent);
+            SmokeAge = new NativeArray<float>(n, Allocator.Persistent);
             for (var i = 0; i < n; i++)
                 Heat[i] = ambientC;
+        }
+
+        /// <summary>
+        /// Advances the layer model for one step (call after SwapBuffers). Thickness grows with the smoke present
+        /// (a dense cell fills ~2.6 m in about 90 s) and shrinks when the cell clears; age counts up while smoke is
+        /// present and resets when it is gone.
+        /// </summary>
+        public void StepLayer(float dt)
+        {
+            var n = CellCount;
+            for (var i = 0; i < n; i++)
+            {
+                var s = Smoke[i];
+                var layer = SmokeLayer[i];
+                if (s > 0.02f)
+                {
+                    // Smoke keeps arriving at the ceiling while the cell is smoky, so the layer grows with the
+                    // accumulated smoke (a dense cell fills the 2.6 m in roughly a minute and a half; a thin haze much
+                    // more slowly), and never thins while smoke is still present.
+                    layer = math.min(MaxLayerThickness, layer + dt * (0.012f + 0.035f * math.saturate(s * 2f)));
+                    SmokeAge[i] += dt;
+                }
+                else
+                {
+                    layer = math.max(0f, layer - dt * 0.15f);
+                    if (layer <= 0.01f)
+                        SmokeAge[i] = 0f;
+                }
+
+                SmokeLayer[i] = layer;
+            }
+        }
+
+        /// <summary>Bottom of the smoke layer above cell <paramref name="i"/> in world Y (ceiling when there is no smoke).</summary>
+        public float LayerBottom(int i)
+        {
+            var c = Layout.Decode(i);
+            return Layout.Origin.y + Layout.ElevationOf(c.y) + CeilingHeight - SmokeLayer[i];
         }
 
         public int CellCount => Layout.CellCount;
@@ -97,6 +153,8 @@ namespace Fire3D.Simulation
             HeatC = Heat[i],
             Visibility = math.saturate(1f - Smoke[i] * 1.15f),
             Flags = GetFlags(i),
+            LayerBottomY = LayerBottom(i),
+            SmokeAgeSeconds = SmokeAge[i],
             Valid = true,
         };
 
@@ -132,6 +190,8 @@ namespace Fire3D.Simulation
             if (HeatNext.IsCreated) HeatNext.Dispose();
             if (SmokeNext.IsCreated) SmokeNext.Dispose();
             if (FuelNext.IsCreated) FuelNext.Dispose();
+            if (SmokeLayer.IsCreated) SmokeLayer.Dispose();
+            if (SmokeAge.IsCreated) SmokeAge.Dispose();
         }
     }
 }

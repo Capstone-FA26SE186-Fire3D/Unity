@@ -100,7 +100,11 @@ namespace Fire3D.Simulation
             return ticks;
         }
 
-        public void Step() => _group.Update();
+        public void Step()
+        {
+            _group.Update();
+            Grid.StepLayer(TickSeconds);
+        }
 
         public void DrainEvents(List<SimulationEvent> into)
         {
