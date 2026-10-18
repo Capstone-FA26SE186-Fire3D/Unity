@@ -169,7 +169,8 @@ namespace Fire3D.Unity.Content
         {
             if (p == null)
                 return Vector3.zero;
-            return new Vector3(p.Position.X, ElevationOf(p.FloorId) + p.Position.Y, p.Position.Z);
+            // Contract x/z are building coordinates in the GLB frame, y is height above the floor slab.
+            return ContractFrame.ToUnity(p.Position.X, ElevationOf(p.FloorId) + p.Position.Y, p.Position.Z);
         }
 
         private static Quaternion WorldRotation(Placement p)
@@ -177,7 +178,7 @@ namespace Fire3D.Unity.Content
             if (p == null)
                 return Quaternion.identity;
             var q = new Quaternion(p.Rotation.X, p.Rotation.Y, p.Rotation.Z, p.Rotation.W);
-            return Mathf.Approximately(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w, 0f) ? Quaternion.identity : q.normalized;
+            return Mathf.Approximately(q.x * q.x + q.y * q.y + q.z * q.z + q.w * q.w, 0f) ? Quaternion.identity : ContractFrame.ToUnity(q.normalized);
         }
 
         private Bounds BuildingBounds()

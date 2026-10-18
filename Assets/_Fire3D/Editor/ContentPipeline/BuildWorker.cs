@@ -454,7 +454,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 }
             }
 
-            foreach (var t in nodes.Values.Where(t => t.name.IndexOf("stair", StringComparison.OrdinalIgnoreCase) >= 0))
+            // Stairs: IFC nodes are named by GlobalId, so the worker lists IfcStair/IfcRamp as portals of type "stair";
+            // hand-made inputs may still name the node "stair".
+            var stairIds = new HashSet<string>(building.Portals.Where(p => p.Type == "stair" && p.IfcGlobalId != null).Select(p => p.IfcGlobalId));
+            foreach (var t in nodes.Values.Where(t => stairIds.Contains(t.name) || t.name.IndexOf("stair", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 var b = BoundsOf(t.gameObject);
                 if (b.size.sqrMagnitude < 0.5f)
@@ -504,9 +507,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                     continue;
                 if (s.Bbox is not { Length: 2 } || s.Bbox[0].Length < 3 || s.Bbox[1].Length < 3)
                     continue;
-                var min = new Vector3(s.Bbox[0][0], s.Bbox[0][1], s.Bbox[0][2]);
-                var max = new Vector3(s.Bbox[1][0], s.Bbox[1][1], s.Bbox[1][2]);
-                var bounds = new Bounds((min + max) * 0.5f, max - min);
+                var bounds = ContractFrame.ToUnityBounds(new Vector3(s.Bbox[0][0], s.Bbox[0][1], s.Bbox[0][2]), new Vector3(s.Bbox[1][0], s.Bbox[1][1], s.Bbox[1][2]));
+                var max = bounds.max;
                 var go = new GameObject($"Space_{s.IfcGlobalId}");
                 go.transform.SetParent(root.transform, false);
                 var vol = go.AddComponent<SpaceVolume>();

@@ -398,7 +398,8 @@ namespace Fire3D.Unity.Editor.Development
             Spaces.Add(new JObject
             {
                 ["ifcGlobalId"] = id, ["name"] = name ?? id, ["longName"] = name ?? id, ["category"] = category, ["storey"] = floorId,
-                ["bbox"] = new JArray(new JArray(bounds.min.x, bounds.min.y, bounds.min.z), new JArray(bounds.max.x, bounds.max.y, bounds.max.z)),
+                // Contract (GLB) frame: X mirrored, so the min/max X corners swap.
+                ["bbox"] = new JArray(new JArray(-bounds.max.x, bounds.min.y, bounds.min.z), new JArray(-bounds.min.x, bounds.max.y, bounds.max.z)),
             });
         }
 
@@ -459,13 +460,14 @@ namespace Fire3D.Unity.Editor.Development
             JObject Obj(string id, string kind, string floor, float x, float y, float z, float yaw = 0f, string cap = null, JObject p = null,
                 string label = null, string anchor = null)
             {
-                var q = Quaternion.Euler(0f, yaw, 0f);
+                // Authored in Unity coordinates, written in the contract (GLB) frame like the web editor does.
+                var q = ContractFrame.FromUnity(Quaternion.Euler(0f, yaw, 0f));
                 var o = new JObject
                 {
                     ["id"] = id, ["kind"] = kind,
                     ["placement"] = new JObject
                     {
-                        ["floorId"] = floor, ["position"] = new JObject { ["x"] = x, ["y"] = y, ["z"] = z },
+                        ["floorId"] = floor, ["position"] = new JObject { ["x"] = -x, ["y"] = y, ["z"] = z },
                         ["rotation"] = new JObject { ["x"] = q.x, ["y"] = q.y, ["z"] = q.z, ["w"] = q.w },
                     },
                 };

@@ -1,0 +1,12 @@
+{
+  "baseUrl": "https://api.fet3d.io.vn",
+  "toolchainVersion": "fet3d-geometry-worker-1",
+  "pythonExe": "C:\fet3d\unity\Tools\GeometryWorker\.venv\Scripts\python.exe",
+  "workRoot": "C:\fet3d\geometry-work",
+  "keyFile": "C:\fet3d\secrets\worker-key.dpapi",
+  "pollSeconds": 20,
+  "renewSeconds": 120,
+  "timeoutMinutes": 45,
+  "keepJobs": 5,
+  "httpTimeoutSeconds": 300
+}
