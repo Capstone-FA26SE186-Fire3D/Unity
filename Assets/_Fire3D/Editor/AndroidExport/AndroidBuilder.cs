@@ -23,6 +23,17 @@ namespace Fire3D.Unity.Editor.AndroidExport
         [MenuItem("Fire3D/Build/Material Library Bundle (Android)")]
         public static void BuildLibraryBundle() => BuildLibraryBundle(BuildTarget.Android);
 
+        /// <summary>
+        /// Batch helper for test projects: the library bundle for the Editor's active target, so packages built for the same
+        /// target render correctly in Editor play tests (Android shaders draw magenta in a Windows Editor).
+        /// </summary>
+        public static void BuildLibraryBundleForActiveTarget()
+        {
+            BuildLibraryBundle(EditorUserBuildSettings.activeBuildTarget);
+            if (Application.isBatchMode)
+                EditorApplication.Exit(0);
+        }
+
         public static void BuildLibraryBundle(BuildTarget target)
         {
             MaterialLibraryBuilder.Build();
@@ -69,7 +80,36 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 options = BuildOptions.None,
             });
             EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+            if (report.summary.result == BuildResult.Succeeded)
+                PackageUnityLibrary(output);
             Finish(report, output);
+        }
+
+        /// <summary>
+        /// Zips the exported <c>unityLibrary</c> module (build.gradle at the zip root, as Mobile's prepare-unity-library
+        /// expects) and writes its SHA-256 next to it. Upload the zip to the S3 path pinned in Mobile's
+        /// unity-artifact.lock.json ({version, s3Uri, sha256}).
+        /// </summary>
+        public static string PackageUnityLibrary(string exportRoot)
+        {
+            var module = Path.Combine(exportRoot, "unityLibrary");
+            if (!File.Exists(Path.Combine(module, "build.gradle")))
+            {
+                Debug.LogError($"[Fire3D build] {module} has no build.gradle; nothing packaged.");
+                return null;
+            }
+            var version = $"{Application.version}-{DateTime.UtcNow:yyyyMMddHHmm}";
+            var zip = Path.GetFullPath(Path.Combine(exportRoot, "..", $"fet3d-unityLibrary-{version}.zip"));
+            if (File.Exists(zip))
+                File.Delete(zip);
+            System.IO.Compression.ZipFile.CreateFromDirectory(module, zip, System.IO.Compression.CompressionLevel.Optimal, includeBaseDirectory: false);
+            string sha;
+            using (var stream = File.OpenRead(zip))
+            using (var hash = System.Security.Cryptography.SHA256.Create())
+                sha = string.Concat(hash.ComputeHash(stream).Select(b => b.ToString("x2")));
+            File.WriteAllText(zip + ".json", new Newtonsoft.Json.Linq.JObject { ["version"] = version, ["sha256"] = sha, ["file"] = Path.GetFileName(zip) }.ToString());
+            Debug.Log($"[Fire3D build] unityLibrary {version} → {zip} (sha256 {sha})");
+            return zip;
         }
 
         private static void Prepare()

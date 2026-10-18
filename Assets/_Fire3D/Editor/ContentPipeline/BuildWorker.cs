@@ -454,7 +454,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 }
             }
 
-            foreach (var t in nodes.Values.Where(t => t.name.IndexOf("stair", StringComparison.OrdinalIgnoreCase) >= 0))
+            // Stairs: IFC nodes are named by GlobalId, so the worker lists IfcStair/IfcRamp as portals of type "stair";
+            // hand-made inputs may still name the node "stair".
+            var stairIds = new HashSet<string>(building.Portals.Where(p => p.Type == "stair" && p.IfcGlobalId != null).Select(p => p.IfcGlobalId));
+            foreach (var t in nodes.Values.Where(t => stairIds.Contains(t.name) || t.name.IndexOf("stair", StringComparison.OrdinalIgnoreCase) >= 0))
             {
                 var b = BoundsOf(t.gameObject);
                 if (b.size.sqrMagnitude < 0.5f)
@@ -463,7 +466,32 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 vol.transform.SetParent(root.transform, true);
                 vol.transform.position = new Vector3(b.center.x, b.min.y - 0.1f, b.center.z);
                 vol.Size = new Vector3(b.size.x + 0.4f, b.size.y + 0.4f, b.size.z + 0.4f);
+                vol.Flight = t;
             }
+        }
+
+        /// <summary>
+        /// IFC rooms are often modelled shorter than the storey (Revit spaces stop at 2.6 m under a 3.1 m slab) and their
+        /// boxes can overlap a stairwell, so a light at the space top floats mid-air. A panel goes under the first
+        /// down-facing, room-sized surface 1.8–4.5 m above the floor at its own position; none there (stairwell, void) means
+        /// no panel. Stair spaces keep their top, the ceiling of the highest floor they serve.
+        /// </summary>
+        private static float? CeilingAbove(Vector3 floorPoint, Bounds room, string category)
+        {
+            if (category == "stair")
+                return room.max.y;
+            Physics.SyncTransforms();
+            var from = new Vector3(floorPoint.x, room.min.y + 1.2f, floorPoint.z);
+            foreach (var hit in Physics.RaycastAll(from, Vector3.up, 3.5f, ~0, QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+            {
+                var size = hit.collider.bounds.size;
+                // A ceiling faces down and spans the room; skip cabinets, lamps and beams on the way up.
+                if (hit.point.y < room.min.y + 1.8f || hit.normal.y > -0.7f || size.x < 1.5f || size.z < 1.5f)
+                    continue;
+                return hit.point.y;
+            }
+
+            return null;
         }
 
         /// <summary>Wraps an IFC door node so it can swing: hinge on one end of the door's long horizontal axis.</summary>
@@ -504,9 +532,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                     continue;
                 if (s.Bbox is not { Length: 2 } || s.Bbox[0].Length < 3 || s.Bbox[1].Length < 3)
                     continue;
-                var min = new Vector3(s.Bbox[0][0], s.Bbox[0][1], s.Bbox[0][2]);
-                var max = new Vector3(s.Bbox[1][0], s.Bbox[1][1], s.Bbox[1][2]);
-                var bounds = new Bounds((min + max) * 0.5f, max - min);
+                var bounds = ContractFrame.ToUnityBounds(new Vector3(s.Bbox[0][0], s.Bbox[0][1], s.Bbox[0][2]), new Vector3(s.Bbox[1][0], s.Bbox[1][1], s.Bbox[1][2]));
+                var max = bounds.max;
                 var go = new GameObject($"Space_{s.IfcGlobalId}");
                 go.transform.SetParent(root.transform, false);
                 var vol = go.AddComponent<SpaceVolume>();
@@ -514,7 +541,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 vol.Category = s.Category ?? "room";
                 vol.Bounds = bounds;
                 if (vol.Category != "outdoor")
-                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, max.y, root.transform);
+                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, at => CeilingAbove(at, bounds, vol.Category), root.transform);
             }
         }
 

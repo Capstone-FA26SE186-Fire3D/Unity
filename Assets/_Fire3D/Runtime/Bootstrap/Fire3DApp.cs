@@ -43,7 +43,13 @@ namespace Fire3D.Unity.Bootstrap
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
         }
 
-        private void Start() => _bridge.Send(BridgeMessages.Make(BridgeMessages.Ready, null, new Newtonsoft.Json.Linq.JObject
+        private void Start() => SendReady();
+
+        /// <summary>
+        /// Ready is sent at start and again whenever the runtime is back to idle after a session, so a host that keeps the
+        /// Unity player alive between sessions can deliver the next Launch without restarting it.
+        /// </summary>
+        private void SendReady() => _bridge.Send(BridgeMessages.Make(BridgeMessages.Ready, null, new Newtonsoft.Json.Linq.JObject
         {
             ["runtimeVersion"] = RuntimeCatalog.RuntimeVersion,
             ["protocolVersion"] = LaunchRequest.CurrentProtocol,
@@ -80,6 +86,9 @@ namespace Fire3D.Unity.Bootstrap
         }
 
         public void Pause(string _) => _session?.SetPaused(true);
+
+        /// <summary>Mobile returns to the Unity activity (app foregrounded).</summary>
+        public void Resume(string _) => _session?.SetPaused(false);
 
         private IEnumerator Run(LaunchRequest launch)
         {
@@ -142,7 +151,9 @@ namespace Fire3D.Unity.Bootstrap
                 Destroy(world.Root.gameObject);
             yield return ContentLoader.Unload(_content);
             _content = null;
+            _session = null;
             _busy = false;
+            SendReady();
         }
     }
 }
