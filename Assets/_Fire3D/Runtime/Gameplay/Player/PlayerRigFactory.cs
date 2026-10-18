@@ -25,6 +25,10 @@ namespace Fire3D.Unity.Gameplay.Player
             if (assets != null && assets.PlayerPrefab != null)
             {
                 visual = Object.Instantiate(assets.PlayerPrefab, player.transform).transform;
+                // Any body can be the player (an NPC variant included); the player's body always animates, even when the
+                // first-person view hides it, so the hand IK and stance stay current.
+                if (visual.TryGetComponent<Animator>(out var animator))
+                    animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             }
             else
             {

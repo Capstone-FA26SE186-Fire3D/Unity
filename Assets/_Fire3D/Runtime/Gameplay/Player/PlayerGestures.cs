@@ -16,6 +16,7 @@ namespace Fire3D.Unity.Gameplay.Player
         private Transform _armR, _armL;
         private Quaternion _restR, _restL;
         private PlayerMotor _motor;
+        private Fire3D.Unity.Presentation.CharacterAnimator _character;
         private float _gesture; // 0 = free (walk swing), 1 = arm driven by a gesture.
         private Quaternion _gestureRotation;
         private float _phase;
@@ -25,6 +26,7 @@ namespace Fire3D.Unity.Gameplay.Player
         private void Start()
         {
             _motor = GetComponent<PlayerMotor>();
+            _character = GetComponentInChildren<Fire3D.Unity.Presentation.CharacterAnimator>();
             foreach (var t in GetComponentsInChildren<Transform>(true))
             {
                 if (t.name == "ArmR")
@@ -49,6 +51,12 @@ namespace Fire3D.Unity.Gameplay.Player
             Busy = true;
             try
             {
+                if (_character != null)
+                {
+                    yield return ReachWithIk(worldPoint, reachSeconds, holdSeconds, atContact, flinch);
+                    yield break;
+                }
+
                 if (_armR == null)
                 {
                     yield return new WaitForSeconds(reachSeconds);
@@ -88,6 +96,36 @@ namespace Fire3D.Unity.Gameplay.Player
             {
                 _gesture = 0f;
                 Busy = false;
+            }
+        }
+
+        /// <summary>Rigged body: the right hand follows an IK target onto the point, with the same timing as the stand-in arm.</summary>
+        private IEnumerator ReachWithIk(Vector3 worldPoint, float reachSeconds, float holdSeconds, Action atContact, Func<bool> flinch)
+        {
+            try
+            {
+                for (var t = 0f; t < 1f; t += Time.deltaTime / Mathf.Max(0.05f, reachSeconds))
+                {
+                    _character.SetHandTarget(worldPoint, Smooth(t));
+                    yield return null;
+                }
+
+                _character.SetHandTarget(worldPoint, 1f);
+                atContact?.Invoke();
+                var snap = flinch != null && flinch();
+                var hold = snap ? 0.12f : holdSeconds;
+                for (var t = 0f; t < hold; t += Time.deltaTime)
+                    yield return null;
+                var back = snap ? 0.12f : 0.3f;
+                for (var t = 0f; t < 1f; t += Time.deltaTime / back)
+                {
+                    _character.SetHandTarget(worldPoint, 1f - Smooth(t));
+                    yield return null;
+                }
+            }
+            finally
+            {
+                _character.SetHandTarget(worldPoint, 0f);
             }
         }
 

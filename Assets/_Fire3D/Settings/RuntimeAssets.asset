@@ -33,8 +33,13 @@ MonoBehaviour:
     Prefab: {fileID: 7877220882927243034, guid: 35b9f43fbb242494f829e1a754236f6d, type: 3}
   - Capability: suppression.sprinkler
     Prefab: {fileID: 7673010690039564176, guid: b335d0fcbd3cd144799132d3d4c7ed83, type: 3}
-  PlayerPrefab: {fileID: 2813855588477982115, guid: bffa16754d7c02040bb44ed0d69a4e41, type: 3}
-  NpcPrefab: {fileID: 9036844099690812783, guid: 203df090b86156540b77c94110273213, type: 3}
+  PlayerPrefab: {fileID: 755447955702728051, guid: 7a63af5a77a4abe4fbf48c0d39ef4e1e, type: 3}
+  NpcPrefab: {fileID: 3776986061081416772, guid: f7746847a153db1489a027c9faefd1d7, type: 3}
+  NpcVariants:
+  - {fileID: 3776986061081416772, guid: f7746847a153db1489a027c9faefd1d7, type: 3}
+  PlayerVariants:
+  - {fileID: 755447955702728051, guid: 7a63af5a77a4abe4fbf48c0d39ef4e1e, type: 3}
+  - {fileID: 6471250535313094879, guid: 9e103849c91f17b4fb1e65abc87dfe36, type: 3}
   FirePrefab: {fileID: 1854334049682896619, guid: 7f519b416f16ead4196ba85dd04c15bd, type: 3}
   SmokePrefab: {fileID: 3567470755748239146, guid: ce64e6590c90cdf4dbd48c04182d1065, type: 3}
   SprayPrefab: {fileID: 0}
