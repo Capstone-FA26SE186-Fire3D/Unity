@@ -57,7 +57,7 @@ namespace Fire3D.Unity.Development
             }
 
             foreach (var v in UnityEngine.Object.FindObjectsByType<StairVolume>(FindObjectsSortMode.None))
-                if (TryMeasure(v.WorldBounds, out var link))
+                if (TryMeasure(v.WorldBounds, v.Flight, out var link))
                     _stairs.Add(link);
         }
 
@@ -220,17 +220,27 @@ namespace Fire3D.Unity.Development
         /// <summary>
         /// Samples the walking surface along the long axis of the volume; the high end is the top of the flight.
         /// </summary>
-        private bool TryMeasure(Bounds b, out StairLink link)
+        private bool TryMeasure(Bounds b, Transform flight, out StairLink link)
         {
             link = default;
+            var volume = b;
+            // The volume is padded around the flight; sampling its padded ends would miss the steps, so measure the flight.
+            var colliders = flight != null ? flight.GetComponentsInChildren<Collider>() : System.Array.Empty<Collider>();
+            if (colliders.Length > 0)
+            {
+                b = colliders[0].bounds;
+                foreach (var part in colliders)
+                    b.Encapsulate(part.bounds);
+            }
+
             var alongX = b.size.x >= b.size.z;
             var length = alongX ? b.size.x : b.size.z;
-            const float inset = 0.2f;
+            var inset = colliders.Length > 0 ? 0.25f : 0.2f;
             Vector3 At(float t) => alongX
                 ? new Vector3(Mathf.Lerp(b.min.x + inset, b.max.x - inset, t), b.max.y + 0.3f, b.center.z)
                 : new Vector3(b.center.x, b.max.y + 0.3f, Mathf.Lerp(b.min.z + inset, b.max.z - inset, t));
 
-            if (!Ground(At(0f), b.size.y + 1f, out var a) || !Ground(At(1f), b.size.y + 1f, out var c))
+            if (!Ground(At(0f), b.size.y + 1f, out var a, flight) || !Ground(At(1f), b.size.y + 1f, out var c, flight))
                 return false;
             if (Mathf.Abs(a.y - c.y) < 1f || length < 1f)
                 return false;
@@ -239,7 +249,7 @@ namespace Fire3D.Unity.Development
             var bottom = a.y > c.y ? c : a;
             link = new StairLink
             {
-                Bounds = b,
+                Bounds = volume,
                 Top = top,
                 Bottom = bottom,
                 TopEntry = EntryNear(top, b),
@@ -285,13 +295,15 @@ namespace Fire3D.Unity.Development
             return true;
         }
 
-        private bool Ground(Vector3 from, float distance, out Vector3 point)
+        private bool Ground(Vector3 from, float distance, out Vector3 point, Transform only = null)
         {
             point = default;
             var best = float.MaxValue;
             foreach (var hit in Physics.RaycastAll(from, Vector3.down, distance, ~0, QueryTriggerInteraction.Ignore))
             {
                 if (_ignore != null && hit.transform.IsChildOf(_ignore))
+                    continue;
+                if (only != null && !hit.transform.IsChildOf(only))
                     continue;
                 if (hit.distance < best)
                 {
