@@ -177,26 +177,27 @@ namespace Fire3D.Unity.Presentation
 
         private static ParticleSystem Smoke(GameObject go, VfxTextures tex)
         {
-            // Few, very large flipbook sprites (each one rolls inside itself): a thick column without the overdraw of
-            // thousands of small particles. Black soot at the source, greying as it spreads and cools.
-            var ps = NewSystem(go, 18, 5f, 8f);
+            // Few big flipbook sprites (each one rolls inside itself) instead of thousands of small particles. Indoors a
+            // sprite must stay smaller than the room: a quad wider than the corridor is cut straight by the walls and
+            // the smoke reads as a black box. Black soot at the source, greying as it spreads and cools.
+            var ps = NewSystem(go, 26, 5f, 8f);
             var main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(3.6f, 5.4f);
+            main.startSize = new ParticleSystem.MinMaxCurve(1.7f, 2.6f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
             main.startColor = new Color(0.8f, 0.78f, 0.76f, 1f);
             var emission = ps.emission;
-            emission.rateOverTime = 2.2f;
+            emission.rateOverTime = 3.2f;
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.9f;
+            shape.radius = 0.7f;
             shape.rotation = new Vector3(-90f, 0f, 0f);
             var rot = ps.rotationOverLifetime;
             rot.enabled = true;
             rot.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
             Flipbook(ps, tex?.Smoke != null);
-            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.14f, 0.6f, 0.74f);
-            Size(ps, 0.45f, 1f, 1.8f);
+            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.16f, 0.6f, 0.78f);
+            Size(ps, 0.5f, 1f, 1.5f);
             Turbulence(ps, 0.12f, 0.5f);
             var sixWay = tex?.SmokeShader != null && tex.SmokeLightA != null && tex.SmokeLightB != null;
             var material = sixWay ? SixWaySmokeMaterial(tex) : Material(fire: false, tex?.Smoke, additive: false, lit: true);

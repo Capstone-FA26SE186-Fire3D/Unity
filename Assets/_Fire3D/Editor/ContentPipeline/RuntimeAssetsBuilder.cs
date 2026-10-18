@@ -59,9 +59,6 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             if (assets.NpcPrefab == null || AssetDatabase.GetAssetPath(assets.NpcPrefab).StartsWith(PrefabDir))
                 assets.NpcPrefab = SavePrefab(PrototypeFactory.Person("NpcVisual", new Color(0.25f, 0.55f, 0.35f)), $"{PrefabDir}/NpcVisual.prefab");
 
-            // VFX materials are rebuilt every time so tuning in VfxFactory is never hidden by a stale asset.
-            foreach (var stale in new[] { "Fire_FlameFlipbook", "Fire_SoftGlow", "SmokeFlipbook", "HeatHaze", "SmokeSixWay" })
-                AssetDatabase.DeleteAsset($"{ProtoMatDir}/{stale}.mat");
             assets.FirePrefab = SaveVfx(true, $"{PrefabDir}/Flame.prefab");
             assets.SmokePrefab = SaveVfx(false, $"{PrefabDir}/Smoke.prefab");
             assets.Materials = AssetDatabase.LoadAssetAtPath<MaterialLibrary>(MaterialLibraryBuilder.LibraryAsset) ?? MaterialLibraryBuilder.Build();
@@ -91,7 +88,15 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                         continue;
                     var path = $"{ProtoMatDir}/{m.name}.mat";
                     var saved = AssetDatabase.LoadAssetAtPath<Material>(path);
-                    if (saved == null)
+                    if (saved != null && IsVfxMaterial(m.name))
+                    {
+                        // Tuning in VfxFactory must show up, but deleting and recreating the asset leaves prefabs holding
+                        // dead references (null materials, magenta particles) until a reimport: overwrite in place.
+                        PersistTextures(m);
+                        EditorUtility.CopySerialized(m, saved);
+                        EditorUtility.SetDirty(saved);
+                    }
+                    else if (saved == null)
                     {
                         PersistTextures(m);
                         AssetDatabase.CreateAsset(m, path);
@@ -104,6 +109,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 r.sharedMaterials = mats;
             }
         }
+
+        private static bool IsVfxMaterial(string name) =>
+            name.StartsWith("Fire_") || name is "SmokeFlipbook" or "SmokeSixWay" or "HeatHaze";
 
         private static void PersistTextures(Material m)
         {
@@ -151,7 +159,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             PersistMaterials(go);
             var prefab = PrefabUtility.SaveAsPrefabAsset(go, path);
             Object.DestroyImmediate(go);
-            return prefab.GetComponent<ParticleSystem>();
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<ParticleSystem>();
         }
     }
 }

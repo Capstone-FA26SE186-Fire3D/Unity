@@ -93,13 +93,13 @@ namespace Fire3D.Unity.Presentation
             Assign(_fires, maxFires, _candidates, true);
 
             _candidates.Clear();
-            for (var dz = -r; dz <= r; dz += 4)
-            for (var dx = -r; dx <= r; dx += 4)
+            for (var dz = -r; dz <= r; dz += 5)
+            for (var dx = -r; dx <= r; dx += 5)
             {
                 if (!layout.InBounds(floor, c.x + dx, c.z + dz))
                     continue;
                 var i = layout.Index(floor, c.x + dx, c.z + dz);
-                if (grid.Smoke[i] > 0.18f && grid.Fire[i] < 0.5f)
+                if (grid.Smoke[i] > 0.1f && grid.Fire[i] < 0.5f)
                     _candidates.Add((grid.Smoke[i] - math.length(new float2(dx, dz)) * 0.01f, i));
             }
 
@@ -131,7 +131,13 @@ namespace Fire3D.Unity.Presentation
                 ps.transform.position = fire ? center : center + Vector3.up * Mathf.Lerp(1.4f, 2.55f, Mathf.Clamp01(grid.Smoke[i]));
                 var value = fire ? grid.Fire[i] : grid.Smoke[i];
                 // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
-                var target = fire ? Mathf.Lerp(0.55f, 1.4f, value) : Mathf.Lerp(0.7f, 1.3f, value);
+                var target = fire ? Mathf.Lerp(0.55f, 1.4f, value) : Mathf.Lerp(0.75f, 1.25f, value);
+                if (!fire)
+                {
+                    // Thin smoke stays see-through so billows show; dense smoke builds up to near opaque.
+                    var sm = ps.main;
+                    sm.startColor = new Color(0.8f, 0.78f, 0.76f, Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(value)));
+                }
                 var current = ps.transform.localScale.x;
                 ps.transform.localScale = Vector3.one * Mathf.Lerp(current < 0.01f ? target : current, target, 0.35f);
                 if (fire)
