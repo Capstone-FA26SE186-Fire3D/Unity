@@ -47,6 +47,11 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 v.filterMode = FilterMode.Trilinear;
                 // Noise tiles; flipbook cells must not bleed into each other.
                 var noise = assetPath.Contains("Noise");
+                // Flipbook atlases have no padding between cells: mipmaps average neighbouring frames into a cell's
+                // transparent border, which shows as square outlines on distant sprites. No mips for atlases.
+                var atlas = assetPath.Contains("Flipbook") || assetPath.Contains("SmokeLight");
+                v.mipmapEnabled = !atlas;
+                v.filterMode = atlas ? FilterMode.Bilinear : FilterMode.Trilinear;
                 v.wrapMode = noise ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
                 v.sRGBTexture = !noise && !data;
                 v.maxTextureSize = 1024;

@@ -188,10 +188,18 @@ def upscale(chan):
     return np.asarray(img, dtype=np.float32) / 255.0
 
 
+BORDER = 4  # px of each cell kept fully transparent so bilinear filtering never reaches the neighbouring frame
+
+
 def atlas(frames_rgba):
     img = np.zeros((GRID * CELL, GRID * CELL, 4), dtype=np.float32)
     for i, f in enumerate(frames_rgba):
         gx, gy = i % GRID, i // GRID
+        f = f.copy()
+        f[:BORDER, :, 3] = 0
+        f[-BORDER:, :, 3] = 0
+        f[:, :BORDER, 3] = 0
+        f[:, -BORDER:, 3] = 0
         img[gy * CELL:(gy + 1) * CELL, gx * CELL:(gx + 1) * CELL] = f
     return Image.fromarray((np.clip(img, 0, 1) * 255 + 0.5).astype(np.uint8), "RGBA")
 

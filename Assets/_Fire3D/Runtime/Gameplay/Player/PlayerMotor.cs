@@ -111,7 +111,12 @@ namespace Fire3D.Unity.Gameplay.Player
             moved.y = 0f;
             _distanceSinceReport += moved.magnitude;
 
-            if (_planarVelocity.sqrMagnitude > 0.01f && !ActionLock)
+            if (cameraRig != null && cameraRig.FirstPerson && !ActionLock)
+            {
+                // First person: the body faces where the camera looks, so interactions target what the player sees.
+                transform.rotation = Quaternion.RotateTowards(transform.rotation, Quaternion.Euler(0f, cameraRig.Yaw, 0f), turnSpeedDegrees * 2f * dt);
+            }
+            else if (_planarVelocity.sqrMagnitude > 0.01f && !ActionLock)
             {
                 var look = Quaternion.LookRotation(new Vector3(_planarVelocity.x, 0f, _planarVelocity.z));
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, look, turnSpeedDegrees * dt);

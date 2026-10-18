@@ -163,9 +163,18 @@ namespace Fire3D.Unity.Editor.Development
                 Box("Slab_E_S", new Vector3(23.25f, e - Slab, -0.1f), new Vector3(24.1f, e, 2.5f), "concrete", level);
             }
 
-            // Ceiling finish under the slab above.
-            Box("Ceiling", new Vector3(0.1f, e + WallHeight - 0.02f, 0.1f), new Vector3(23.9f, e + WallHeight, 13.9f), "ceiling.tile", level, collider: false)
-                .transform.localScale = Vector3.one;
+            // Ceiling finish under the slab above. On the ground floor it stops at the stair hole: a full sheet here
+            // read as a tiled floor across the opening when seen from the flight above, and people walked through it.
+            if (ground)
+            {
+                Box("Ceiling_W", new Vector3(0.1f, e + WallHeight - 0.02f, 0.1f), new Vector3(18.5f, e + WallHeight, 13.9f), "ceiling.tile", level, collider: false);
+                Box("Ceiling_E_N", new Vector3(18.5f, e + WallHeight - 0.02f, 2.5f), new Vector3(23.9f, e + WallHeight, 13.9f), "ceiling.tile", level, collider: false);
+                Box("Ceiling_E_S", new Vector3(23.25f, e + WallHeight - 0.02f, 0.1f), new Vector3(23.9f, e + WallHeight, 2.5f), "ceiling.tile", level, collider: false);
+            }
+            else
+            {
+                Box("Ceiling", new Vector3(0.1f, e + WallHeight - 0.02f, 0.1f), new Vector3(23.9f, e + WallHeight, 13.9f), "ceiling.tile", level, collider: false);
+            }
 
             // Exterior walls.
             var exitNorth = ground ? new[] { 21f } : System.Array.Empty<float>();
@@ -209,7 +218,10 @@ namespace Fire3D.Unity.Editor.Development
                     Box($"{name}_Floor", new Vector3(x0 + 0.1f, e, z0 + 0.1f), new Vector3(x1 - 0.1f, e + 0.01f, z1 - 0.1f), mat, level, collider: false);
                 AddSpace($"{floorId}-{name}", category, new Bounds(new Vector3((x0 + x1) * 0.5f, e + 1.5f, (z0 + z1) * 0.5f),
                     new Vector3(x1 - x0 - 0.2f, WallHeight, z1 - z0 - 0.2f)), floorId, name: name);
-                RoomLights($"{floorId}_{name}", category, x0, z0, x1, z1, e, level);
+                // Ground-floor stair room: the flight's shaft is open above z < 2.5, so its ceiling light hangs over the
+                // landing side only; a panel in the middle of the opening sat at head height for anyone on the stairs.
+                var lightZ0 = ground && category == "stair" ? 2.5f : z0;
+                RoomLights($"{floorId}_{name}", category, x0, lightZ0, x1, z1, e, level);
             }
 
             Furniture(f, e, level);

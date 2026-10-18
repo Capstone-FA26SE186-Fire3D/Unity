@@ -70,6 +70,7 @@ namespace Fire3D.Unity.Gameplay.Player
             rig.Target = player.transform;
             rig.InputSource = player.GetComponent<GameplayInputReader>();
             motor.CameraRig = rig;
+            rig.FollowVelocity = () => motor.PlanarVelocity;
             motor.InputSource = rig.InputSource;
             return player;
         }

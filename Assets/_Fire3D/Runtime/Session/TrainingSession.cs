@@ -112,6 +112,12 @@ namespace Fire3D.Unity.Session
                 OnResume = () => SetPaused(false),
                 OnAbandon = () => End(EndReason.Abandoned),
                 OnExit = Exit,
+                OnToggleView = () =>
+                {
+                    if (_player.CameraRig != null)
+                        _player.CameraRig.FirstPerson = !_player.CameraRig.FirstPerson;
+                },
+                IsFirstPerson = () => _player.CameraRig != null && _player.CameraRig.FirstPerson,
             }, _interaction, _vitals, _player, _input);
             _ctx.Message += _hud.Toast;
 

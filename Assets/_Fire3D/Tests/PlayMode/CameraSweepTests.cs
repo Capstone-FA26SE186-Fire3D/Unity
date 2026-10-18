@@ -57,23 +57,29 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             {
                 player.Teleport(c, 0f);
                 yield return null;
-                foreach (var pitch in new[] { -20f, 18f, 65f })
-                for (var yaw = 0f; yaw < 360f; yaw += 45f)
+                foreach (var firstPerson in new[] { false, true })
                 {
-                    rig.Snap(yaw, pitch);
-                    for (var k = 0; k < 25; k++)
-                        rig.Step(0.1f);
-                    checkedPoses++;
-                    var p = rig.transform.position;
-                    var n = Physics.OverlapSphereNonAlloc(p, 0.1f, buffer, ~0, QueryTriggerInteraction.Ignore);
-                    for (var j = 0; j < n; j++)
+                    rig.FirstPerson = firstPerson;
+                    foreach (var pitch in firstPerson ? new[] { -60f, 0f, 70f } : new[] { -20f, 18f, 65f })
+                    for (var yaw = 0f; yaw < 360f; yaw += 45f)
                     {
-                        if (buffer[j].transform.IsChildOf(player.transform) || buffer[j] is CharacterController)
-                            continue;
-                        bad.Add($"{label} player {c:F1} yaw {yaw} pitch {pitch}: camera {p:F2} touches {buffer[j].name}");
-                        break;
+                        rig.Snap(yaw, pitch);
+                        for (var k = 0; k < 25; k++)
+                            rig.Step(0.1f);
+                        checkedPoses++;
+                        var p = rig.transform.position;
+                        var n = Physics.OverlapSphereNonAlloc(p, 0.1f, buffer, ~0, QueryTriggerInteraction.Ignore);
+                        for (var j = 0; j < n; j++)
+                        {
+                            if (buffer[j].transform.IsChildOf(player.transform) || buffer[j] is CharacterController)
+                                continue;
+                            bad.Add($"{label} {(firstPerson ? "FP" : "TP")} player {c:F1} yaw {yaw} pitch {pitch}: camera {p:F2} touches {buffer[j].name}");
+                            break;
+                        }
                     }
                 }
+
+                rig.FirstPerson = false;
             }
 
             Debug.Log($"[Fire3D camera] poses {checkedPoses}, touching geometry {bad.Count}\n" + string.Join("\n", bad.Take(25)));

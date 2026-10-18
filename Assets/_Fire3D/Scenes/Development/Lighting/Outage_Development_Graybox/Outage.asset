@@ -803,5 +803,11 @@ MonoBehaviour:
   - BakedId: 262
     LightmapIndex: -1
     ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 263
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
+  - BakedId: 264
+    LightmapIndex: -1
+    ScaleOffset: {x: 1, y: 1, z: 0, w: 0}
   Probes: {fileID: 0}
   AmbientColor: {r: 0.035, g: 0.035, b: 0.045, a: 1}

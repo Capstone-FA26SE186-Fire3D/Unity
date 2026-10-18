@@ -51,6 +51,8 @@ const icons = {
   exit: "log-out",
   hand_empty: "hand",
   sprint: "chevrons-up",
+  view_first: "eye",
+  view_third: "user-round",
 };
 
 const custom = {
