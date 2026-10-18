@@ -127,7 +127,46 @@ namespace Fire3D.Unity.Content
             world.Simulation.FinalizeBuilding();
             if (world.Exits.Count == 0)
                 world.Warnings.Add("Scenario has no Goal exit.");
+            var authored = world.SpawnPosition;
+            world.SpawnPosition = ClearStandingSpot(authored);
+            if ((world.SpawnPosition - authored).sqrMagnitude > 1e-4f)
+                world.Warnings.Add($"Spawn moved {Vector3.Distance(authored, world.SpawnPosition):F2} m from {authored} out of furniture/walls.");
             return world;
+        }
+
+        /// <summary>
+        /// IFC furniture is solid, so a spawn placed on a bed or table (or a little inside a wall) would trap the player.
+        /// Searches rings around the authored point, on the same floor, for the nearest spot where the player capsule is free
+        /// and a walkable surface lies below; returns the authored point if nothing within 3 m qualifies.
+        /// </summary>
+        public static Vector3 ClearStandingSpot(Vector3 authored, float radius = 0.3f, float height = 1.8f)
+        {
+            if (IsClear(authored, radius, height, authored.y, out var onFloor))
+                return onFloor;
+            for (var ring = 0.25f; ring <= 3f; ring += 0.25f)
+            {
+                var steps = Mathf.Max(8, Mathf.CeilToInt(2f * Mathf.PI * ring / 0.25f));
+                for (var i = 0; i < steps; i++)
+                {
+                    var a = i * Mathf.PI * 2f / steps;
+                    var p = authored + new Vector3(Mathf.Cos(a) * ring, 0f, Mathf.Sin(a) * ring);
+                    if (IsClear(p, radius, height, authored.y, out onFloor))
+                        return onFloor;
+                }
+            }
+
+            return authored;
+        }
+
+        private static bool IsClear(Vector3 p, float radius, float height, float floorY, out Vector3 onFloor)
+        {
+            onFloor = p;
+            if (!Physics.Raycast(p + Vector3.up * 0.6f, Vector3.down, out var hit, 1.2f, ~0, QueryTriggerInteraction.Ignore)
+                || Mathf.Abs(hit.point.y - floorY) > 0.45f || hit.normal.y < 0.8f)
+                return false;
+            onFloor = new Vector3(p.x, hit.point.y, p.z);
+            return !Physics.CheckCapsule(onFloor + Vector3.up * (radius + 0.25f), onFloor + Vector3.up * (height - radius), radius, ~0,
+                QueryTriggerInteraction.Ignore);
         }
 
         private void CollectFloors()

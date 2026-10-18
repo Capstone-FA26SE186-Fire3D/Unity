@@ -57,7 +57,7 @@ namespace Fire3D.Unity.Development
             }
 
             foreach (var v in UnityEngine.Object.FindObjectsByType<StairVolume>(FindObjectsSortMode.None))
-                if (TryMeasure(v.WorldBounds, out var link))
+                if (TryMeasure(v.WorldBounds, v.Flight, out var link))
                     _stairs.Add(link);
         }
 
@@ -220,7 +220,7 @@ namespace Fire3D.Unity.Development
         /// <summary>
         /// Samples the walking surface along the long axis of the volume; the high end is the top of the flight.
         /// </summary>
-        private bool TryMeasure(Bounds b, out StairLink link)
+        private bool TryMeasure(Bounds b, Transform flight, out StairLink link)
         {
             link = default;
             var alongX = b.size.x >= b.size.z;
@@ -230,7 +230,7 @@ namespace Fire3D.Unity.Development
                 ? new Vector3(Mathf.Lerp(b.min.x + inset, b.max.x - inset, t), b.max.y + 0.3f, b.center.z)
                 : new Vector3(b.center.x, b.max.y + 0.3f, Mathf.Lerp(b.min.z + inset, b.max.z - inset, t));
 
-            if (!Ground(At(0f), b.size.y + 1f, out var a) || !Ground(At(1f), b.size.y + 1f, out var c))
+            if (!Ground(At(0f), b.size.y + 1f, out var a, flight) || !Ground(At(1f), b.size.y + 1f, out var c, flight))
                 return false;
             if (Mathf.Abs(a.y - c.y) < 1f || length < 1f)
                 return false;
@@ -285,13 +285,15 @@ namespace Fire3D.Unity.Development
             return true;
         }
 
-        private bool Ground(Vector3 from, float distance, out Vector3 point)
+        private bool Ground(Vector3 from, float distance, out Vector3 point, Transform only = null)
         {
             point = default;
             var best = float.MaxValue;
             foreach (var hit in Physics.RaycastAll(from, Vector3.down, distance, ~0, QueryTriggerInteraction.Ignore))
             {
                 if (_ignore != null && hit.transform.IsChildOf(_ignore))
+                    continue;
+                if (only != null && !hit.transform.IsChildOf(only))
                     continue;
                 if (hit.distance < best)
                 {

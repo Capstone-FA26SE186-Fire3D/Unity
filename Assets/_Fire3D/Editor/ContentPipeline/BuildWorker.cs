@@ -466,6 +466,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 vol.transform.SetParent(root.transform, true);
                 vol.transform.position = new Vector3(b.center.x, b.min.y - 0.1f, b.center.z);
                 vol.Size = new Vector3(b.size.x + 0.4f, b.size.y + 0.4f, b.size.z + 0.4f);
+                vol.Flight = t;
             }
         }
 
