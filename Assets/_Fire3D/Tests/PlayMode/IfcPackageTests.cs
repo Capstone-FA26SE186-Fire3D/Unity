@@ -33,6 +33,12 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             if (string.IsNullOrEmpty(manifest) || !File.Exists(manifest))
                 Assert.Ignore("Set FET3D_TEST_PACKAGE (or Builds/IfcTestPackage.txt) to the manifest.json of a package built from an IFC.");
 
+            // Earlier tests may leave a DontDestroyOnLoad app or session behind; a busy app would answer SESSION_BUSY.
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<TrainingSession>())
+                UnityEngine.Object.Destroy(stale.gameObject);
+            foreach (var stale in UnityEngine.Object.FindObjectsByType<Fire3DApp>())
+                UnityEngine.Object.Destroy(stale.gameObject);
+            yield return null;
             yield return SceneManager.LoadSceneAsync("Bootstrap", LoadSceneMode.Single);
             yield return null;
             var app = UnityEngine.Object.FindAnyObjectByType<Fire3DApp>();
@@ -62,6 +68,11 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             Assert.IsEmpty(blockers, $"spawn at {player} overlaps level geometry");
             Assert.IsTrue(Physics.Raycast(player + Vector3.up * 0.5f, Vector3.down, 1.5f, ~0, QueryTriggerInteraction.Ignore), $"no floor under the spawn at {player}");
             Assert.Greater(UnityEngine.Object.FindObjectsByType<DoorView>().Length, 0, "IFC doors became swinging doors");
+            foreach (var stair in UnityEngine.Object.FindObjectsByType<Fire3D.Unity.Content.StairVolume>())
+            {
+                var colliders = stair.Flight != null ? stair.Flight.GetComponentsInChildren<Collider>().Length : -1;
+                Debug.Log($"[Fire3D ifc] stair {stair.name} bounds {stair.WorldBounds} flight {(stair.Flight != null ? stair.Flight.name : "none")} colliders {colliders}");
+            }
 
             var outDir = Environment.GetEnvironmentVariable("FET3D_AUTOPLAY_OUT");
             if (string.IsNullOrEmpty(outDir))

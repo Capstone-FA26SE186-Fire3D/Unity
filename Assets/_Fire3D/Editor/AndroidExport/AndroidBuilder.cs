@@ -23,6 +23,17 @@ namespace Fire3D.Unity.Editor.AndroidExport
         [MenuItem("Fire3D/Build/Material Library Bundle (Android)")]
         public static void BuildLibraryBundle() => BuildLibraryBundle(BuildTarget.Android);
 
+        /// <summary>
+        /// Batch helper for test projects: the library bundle for the Editor's active target, so packages built for the same
+        /// target render correctly in Editor play tests (Android shaders draw magenta in a Windows Editor).
+        /// </summary>
+        public static void BuildLibraryBundleForActiveTarget()
+        {
+            BuildLibraryBundle(EditorUserBuildSettings.activeBuildTarget);
+            if (Application.isBatchMode)
+                EditorApplication.Exit(0);
+        }
+
         public static void BuildLibraryBundle(BuildTarget target)
         {
             MaterialLibraryBuilder.Build();

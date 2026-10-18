@@ -223,9 +223,19 @@ namespace Fire3D.Unity.Development
         private bool TryMeasure(Bounds b, Transform flight, out StairLink link)
         {
             link = default;
+            var volume = b;
+            // The volume is padded around the flight; sampling its padded ends would miss the steps, so measure the flight.
+            var colliders = flight != null ? flight.GetComponentsInChildren<Collider>() : System.Array.Empty<Collider>();
+            if (colliders.Length > 0)
+            {
+                b = colliders[0].bounds;
+                foreach (var part in colliders)
+                    b.Encapsulate(part.bounds);
+            }
+
             var alongX = b.size.x >= b.size.z;
             var length = alongX ? b.size.x : b.size.z;
-            const float inset = 0.2f;
+            var inset = colliders.Length > 0 ? 0.25f : 0.2f;
             Vector3 At(float t) => alongX
                 ? new Vector3(Mathf.Lerp(b.min.x + inset, b.max.x - inset, t), b.max.y + 0.3f, b.center.z)
                 : new Vector3(b.center.x, b.max.y + 0.3f, Mathf.Lerp(b.min.z + inset, b.max.z - inset, t));
@@ -239,7 +249,7 @@ namespace Fire3D.Unity.Development
             var bottom = a.y > c.y ? c : a;
             link = new StairLink
             {
-                Bounds = b,
+                Bounds = volume,
                 Top = top,
                 Bottom = bottom,
                 TopEntry = EntryNear(top, b),
