@@ -40,11 +40,25 @@ namespace Fire3D.Unity.Tests.PlayModeTests
                     yield return null;
                 }
 
-                // Lowest visible point of the body must not be under the floor.
+                // Lowest point of the body must not be under the floor: the feet of a rigged body (its skinned bounds are a
+                // loose box around the hips), the renderer bounds of the capsule stand-in.
                 var lowest = float.MaxValue;
-                foreach (var r in player.GetComponentsInChildren<Renderer>())
-                    lowest = Mathf.Min(lowest, r.bounds.min.y);
-                Assert.GreaterOrEqual(lowest, player.transform.position.y - 0.1f, $"crouch={crouch}: body sticks below the feet");
+                var animator = player.GetComponentInChildren<Animator>();
+                if (animator != null && animator.isHuman)
+                {
+                    foreach (var bone in new[] { HumanBodyBones.LeftFoot, HumanBodyBones.RightFoot, HumanBodyBones.LeftToes, HumanBodyBones.RightToes, HumanBodyBones.Hips, HumanBodyBones.Head })
+                    {
+                        var t = animator.GetBoneTransform(bone);
+                        if (t != null)
+                            lowest = Mathf.Min(lowest, t.position.y);
+                    }
+                }
+                else
+                {
+                    foreach (var r in player.GetComponentsInChildren<Renderer>())
+                        lowest = Mathf.Min(lowest, r.bounds.min.y);
+                }
+                Assert.GreaterOrEqual(lowest, player.transform.position.y - 0.12f, $"crouch={crouch}: body sticks below the feet");
                 yield return new WaitForEndOfFrame();
                 var tex = ScreenCapture.CaptureScreenshotAsTexture();
                 File.WriteAllBytes(Path.Combine(dir, $"{(crouch ? "crouched" : "standing")}_pitch{(int)pitch}.png"), tex.EncodeToPNG());

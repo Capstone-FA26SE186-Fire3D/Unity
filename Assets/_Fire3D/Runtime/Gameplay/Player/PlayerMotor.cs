@@ -32,6 +32,8 @@ namespace Fire3D.Unity.Gameplay.Player
         private float _verticalVelocity;
         private float _distanceSinceReport;
         private float _crouchBlend;
+        private Fire3D.Unity.Presentation.CharacterAnimator _character;
+        private bool _characterChecked;
 
         public bool Crouched { get; private set; }
 
@@ -143,6 +145,20 @@ namespace Fire3D.Unity.Gameplay.Player
         {
             if (visual == null)
                 return;
+            // A rigged character animates its own stances; the transform tricks below are for the capsule stand-in.
+            if (_character == null && !_characterChecked)
+            {
+                _character = visual.GetComponentInChildren<Fire3D.Unity.Presentation.CharacterAnimator>();
+                _characterChecked = true;
+            }
+
+            if (_character != null)
+            {
+                _character.Speed = _planarVelocity.magnitude;
+                _character.Stance = Crawling ? 2 : Crouched ? 1 : 0;
+                return;
+            }
+
             // 0 = standing, 1 = crouched, 2 = crawling (flat, leaning well forward).
             var stance = Crawling ? 2f : Crouched ? 1f : 0f;
             _crouchBlend = Mathf.MoveTowards(_crouchBlend, stance, dt * 7f);
