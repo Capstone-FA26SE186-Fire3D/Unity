@@ -127,7 +127,8 @@ namespace Fire3D.Unity.Presentation
 
                 var i = cells[k].cell;
                 var center = (Vector3)grid.Layout.CellCenter(i);
-                ps.transform.position = fire ? center : center + Vector3.up * 1.6f;
+                // Hot smoke collects under the ceiling: the denser the cell, the higher the emitter (ceiling is 3 m above the slab).
+                ps.transform.position = fire ? center : center + Vector3.up * Mathf.Lerp(1.4f, 2.55f, Mathf.Clamp01(grid.Smoke[i]));
                 var value = fire ? grid.Fire[i] : grid.Smoke[i];
                 // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
                 var target = fire ? Mathf.Lerp(0.55f, 1.4f, value) : Mathf.Lerp(0.7f, 1.3f, value);

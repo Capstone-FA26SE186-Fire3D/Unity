@@ -108,7 +108,7 @@ namespace Fire3D.Unity.Presentation
             vel.enabled = true;
             vel.space = ParticleSystemSimulationSpace.World;
             vel.x = new ParticleSystem.MinMaxCurve(-0.25f, 0.45f); // a faint draught drifts them one way
-            vel.y = 0f;
+            vel.y = new ParticleSystem.MinMaxCurve(0f, 0f); // all three axes must use the same curve mode
             vel.z = new ParticleSystem.MinMaxCurve(-0.15f, 0.15f);
             var r = Render(go, Material(fire: true, tex?.Glow, additive: true, lit: false, flipbook: false), false, 0f);
             r.renderMode = ParticleSystemRenderMode.Billboard;
@@ -174,24 +174,26 @@ namespace Fire3D.Unity.Presentation
 
         private static ParticleSystem Smoke(GameObject go, VfxTextures tex)
         {
-            var ps = NewSystem(go, 40, 4f, 7f);
+            // Few, very large flipbook sprites (each one rolls inside itself): a thick column without the overdraw of
+            // thousands of small particles. Black soot at the source, greying as it spreads and cools.
+            var ps = NewSystem(go, 18, 5f, 8f);
             var main = ps.main;
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.12f, 0.35f);
-            main.startSize = new ParticleSystem.MinMaxCurve(2.4f, 3.6f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(3.6f, 5.4f);
             main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
-            main.startColor = new Color(0.36f, 0.34f, 0.33f, 1f);
+            main.startColor = new Color(0.8f, 0.78f, 0.76f, 1f);
             var emission = ps.emission;
-            emission.rateOverTime = 4f;
+            emission.rateOverTime = 2.2f;
             var shape = ps.shape;
             shape.shapeType = ParticleSystemShapeType.Circle;
-            shape.radius = 0.8f;
+            shape.radius = 0.9f;
             shape.rotation = new Vector3(-90f, 0f, 0f);
             var rot = ps.rotationOverLifetime;
             rot.enabled = true;
-            rot.z = new ParticleSystem.MinMaxCurve(-0.25f, 0.25f);
+            rot.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
             Flipbook(ps, tex?.Smoke != null);
-            Fade(ps, new Color(0.42f, 0.36f, 0.32f), new Color(0.3f, 0.29f, 0.28f), new Color(0.22f, 0.22f, 0.22f), 0.2f, 0.55f, 0.62f);
-            Size(ps, 0.55f, 1f, 1.7f);
+            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.14f, 0.6f, 0.74f);
+            Size(ps, 0.45f, 1f, 1.8f);
             Turbulence(ps, 0.12f, 0.5f);
             Render(go, Material(fire: false, tex?.Smoke, additive: false, lit: true), tex?.Smoke != null, 0.6f);
             return ps;

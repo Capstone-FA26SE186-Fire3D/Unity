@@ -121,8 +121,9 @@ def smoke_frame(noise, t, puff):
     for _ in range(2):
         blur = (blur + np.roll(blur, 1, 0) + np.roll(blur, -1, 0) + np.roll(blur, 1, 1) + np.roll(blur, -1, 1)) / 5
     gy, gx = np.gradient(blur)
-    shade = np.clip(0.72 + (-gx * 0.4 + gy * 1.0) * 3.0 - y * 0.1, 0.4, 1.0)
-    alpha = smoothstep(0.0, 0.6, density) * 0.92
+    # Strong top-lit shading: bright crowns, dark crevices between billows, so a column reads as rolling smoke.
+    shade = np.clip(0.55 + (-gx * 0.5 + gy * 1.3) * 7.0 - y * 0.18 + (n - 0.5) * 0.5, 0.12, 1.0)
+    alpha = smoothstep(0.04, 0.5, density) * 0.95
     return shade, alpha
 
 
