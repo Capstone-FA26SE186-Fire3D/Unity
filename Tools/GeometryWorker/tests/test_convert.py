@@ -112,8 +112,19 @@ def test_qa_reports_without_inventing_geometry(converted):
     assert converted["ids"]["R2"] in codes["IFC_SPACE_UNNAMED"]["ifcGlobalIds"]
     assert "IFC_NO_WATER_SOURCE" in codes and "IFC_LOW_CONFIDENCE_DEVICE" in codes
     assert converted["summary"]["outcome"] == "Passed"
-    triangle_count = sum(len(_node_positions(converted, n["name"])) // 3 for n in converted["glb"]["nodes"] if "mesh" in n)
+    document = converted["glb"]
+    triangle_count = sum(document["accessors"][p["indices"]]["count"] // 3 for m in document["meshes"] for p in m["primitives"])
     assert triangle_count == converted["summary"]["triangles"]
+
+
+def test_coplanar_triangles_share_vertices(converted):
+    # A box wall has 12 triangles but only 24 distinct (position, normal, uv) corners once welded.
+    document, binary = converted["glb"], converted["bin"]
+    node = next(n for n in document["nodes"] if n["name"] == converted["ids"]["W1"])
+    primitive = document["meshes"][node["mesh"]]["primitives"][0]
+    vertices = document["accessors"][primitive["attributes"]["POSITION"]]["count"]
+    triangles = document["accessors"][primitive["indices"]]["count"] // 3
+    assert triangles == 12 and vertices == 24
 
 
 def test_exit_unknown_when_no_door_is_flagged(tmp_path):

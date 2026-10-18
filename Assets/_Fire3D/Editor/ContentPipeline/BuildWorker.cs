@@ -470,6 +470,29 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
         }
 
+        /// <summary>
+        /// IFC rooms are often modelled shorter than the storey (Revit spaces stop at 2.6 m under a 3.1 m slab), so lights at
+        /// the space top would float mid-air or hang in a stairwell. Use the real ceiling above the room centre (first surface
+        /// 1.8–4.5 m above the floor); stair spaces keep their top, which is the ceiling of the highest floor they serve.
+        /// </summary>
+        private static float CeilingOf(Bounds room, string category)
+        {
+            if (category == "stair")
+                return room.max.y;
+            Physics.SyncTransforms();
+            var from = new Vector3(room.center.x, room.min.y + 1.2f, room.center.z);
+            foreach (var hit in Physics.RaycastAll(from, Vector3.up, 3.5f, ~0, QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
+            {
+                var size = hit.collider.bounds.size;
+                // A ceiling faces down and spans the room; skip cabinets, lamps and beams on the way up.
+                if (hit.point.y < room.min.y + 1.8f || hit.normal.y > -0.7f || size.x < 1.5f || size.z < 1.5f)
+                    continue;
+                return hit.point.y;
+            }
+
+            return room.max.y;
+        }
+
         /// <summary>Wraps an IFC door node so it can swing: hinge on one end of the door's long horizontal axis.</summary>
         private static void MakeDoor(Transform node, string globalId)
         {
@@ -517,7 +540,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 vol.Category = s.Category ?? "room";
                 vol.Bounds = bounds;
                 if (vol.Category != "outdoor")
-                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, max.y, root.transform);
+                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, CeilingOf(bounds, vol.Category), root.transform);
             }
         }
 

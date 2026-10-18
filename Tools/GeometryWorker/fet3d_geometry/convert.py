@@ -369,7 +369,7 @@ class Converter:
                 t, n = tri[mask], normals[mask]
                 positions = t.reshape(-1, 3).astype(np.float32)
                 vertex_normals = np.repeat(n, 3, axis=0).astype(np.float32)
-                primitives.append(Primitive(positions, vertex_normals, _box_uv(positions, vertex_normals), np.arange(len(positions), dtype=np.uint32), material_index(key)))
+                primitives.append(_welded(positions, vertex_normals, _box_uv(positions, vertex_normals), material_index(key)))
             mesh = builder.mesh(element.global_id, primitives)
             node = builder.node(element.global_id, mesh=mesh)
             children[element.storey_index].append(node)
@@ -520,6 +520,17 @@ class ConversionError(Exception):
     def __init__(self, code: str, message: str):
         super().__init__(message)
         self.code = code
+
+
+def _welded(positions: np.ndarray, normals: np.ndarray, uvs: np.ndarray, material: int) -> Primitive:
+    """Shares vertices with the same position, flat normal and UV (1 mm / 0.001 tolerance).
+
+    Coplanar triangles become one connected surface while creases keep separate vertices, so Unity's lightmap unwrap
+    builds one chart per face instead of one chart per triangle (triangle soup baked into white specks).
+    """
+    key = np.concatenate([np.round(positions * 1000), np.round(normals * 1000), np.round(uvs * 1000)], axis=1).astype(np.int64)
+    _, first, inverse = np.unique(key, axis=0, return_index=True, return_inverse=True)
+    return Primitive(positions[first], normals[first], uvs[first], inverse.reshape(-1).astype(np.uint32), material)
 
 
 def _box_uv(positions: np.ndarray, normals: np.ndarray) -> np.ndarray:
