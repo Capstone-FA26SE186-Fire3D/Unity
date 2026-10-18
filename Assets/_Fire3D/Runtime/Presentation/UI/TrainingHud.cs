@@ -32,6 +32,8 @@ namespace Fire3D.Unity.Presentation.UI
             public Action OnPause;
             public Action OnAbandon;
             public Action OnExit;
+            public Action OnToggleView;
+            public Func<bool> IsFirstPerson;
         }
 
         private sealed class ToastView
@@ -75,7 +77,7 @@ namespace Fire3D.Unity.Presentation.UI
         private bool _hasMoved;
 
         private readonly HudButton[] _actions = new HudButton[ActionResolver.MaxButtons];
-        private HudButton _crouch, _pauseButton;
+        private HudButton _crouch, _pauseButton, _viewButton;
 
         private RectTransform _prompt;
         private CanvasGroup _promptGroup;
@@ -259,6 +261,12 @@ namespace Fire3D.Unity.Presentation.UI
             _pauseButton.SetContent("pause", "pause", null);
             _pauseButton.Up += () => _model.OnPause?.Invoke();
             _touchBlockers.Add(_pauseButton.Rect);
+
+            // View toggle beside pause, as in mobile shooters: shows the current view (eye = first person).
+            _viewButton = HudButton.Create(hud, "View", new Vector2(1f, 1f), new Vector2(-124f, -24f), 84f, showLabel: false);
+            _viewButton.SetContent("view_third", "view_third", null);
+            _viewButton.Up += () => _model.OnToggleView?.Invoke();
+            _touchBlockers.Add(_viewButton.Rect);
         }
 
         private void BuildVitals(Transform hud)
@@ -335,7 +343,7 @@ namespace Fire3D.Unity.Presentation.UI
             _crouch = HudButton.Create(hud, "Crouch", anchor, Vector2.zero, 104f);
             _crouch.Rect.pivot = new Vector2(0.5f, 0.5f);
             _crouch.Rect.anchoredPosition = new Vector2(-150f, 470f);
-            _crouch.Up += () => _motor?.SetCrouched(!_motor.Crouched);
+            _crouch.Up += () => _motor?.CycleStance();
             _touchBlockers.Add(_crouch.Rect);
         }
 
@@ -544,9 +552,15 @@ namespace Fire3D.Unity.Presentation.UI
                 b.SetTint(UiKit.Text);
             }
 
+            var firstPerson = _model.IsFirstPerson?.Invoke() ?? false;
+            _viewButton.SetContent(firstPerson ? "view_first" : "view_third", firstPerson ? "view_first" : "view_third", null);
+            _viewButton.SetToggled(firstPerson);
+
             if (_motor != null)
             {
-                _crouch.SetContent(_motor.Crouched ? "stand" : "crouch", _motor.Crouched ? "stand" : "crouch", _motor.Crouched ? "Đứng dậy" : "Cúi thấp");
+                var stanceIcon = _motor.Crawling ? "stand" : _motor.Crouched ? "crawl" : "crouch";
+                var stanceLabel = _motor.Crawling ? "Đứng dậy" : _motor.Crouched ? "Bò" : "Cúi thấp";
+                _crouch.SetContent(stanceIcon, stanceIcon, stanceLabel);
                 _crouch.SetToggled(_motor.Crouched);
                 _crouch.SetRecommended(!_motor.Crouched && _vitals != null && _vitals.LocalSmoke > 0.3f && _model.Mode == TrainingMode.Guided);
             }

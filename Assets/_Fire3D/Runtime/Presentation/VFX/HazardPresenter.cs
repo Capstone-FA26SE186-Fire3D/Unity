@@ -23,7 +23,7 @@ namespace Fire3D.Unity.Presentation
         [SerializeField] private Color smokeFog = new(0.18f, 0.17f, 0.16f);
 
         private readonly List<ParticleSystem> _fires = new();
-        private readonly List<ParticleSystem> _smokes = new();
+        private VolumeSmoke _volumeSmoke;
         private readonly List<Light> _fireLights = new();
         private readonly List<(float score, int cell)> _candidates = new();
         private FireSimulation _sim;
@@ -92,19 +92,7 @@ namespace Fire3D.Unity.Presentation
             _candidates.Sort((a, b) => b.score.CompareTo(a.score));
             Assign(_fires, maxFires, _candidates, true);
 
-            _candidates.Clear();
-            for (var dz = -r; dz <= r; dz += 4)
-            for (var dx = -r; dx <= r; dx += 4)
-            {
-                if (!layout.InBounds(floor, c.x + dx, c.z + dz))
-                    continue;
-                var i = layout.Index(floor, c.x + dx, c.z + dz);
-                if (grid.Smoke[i] > 0.18f && grid.Fire[i] < 0.5f)
-                    _candidates.Add((grid.Smoke[i] - math.length(new float2(dx, dz)) * 0.01f, i));
-            }
-
-            _candidates.Sort((a, b) => b.score.CompareTo(a.score));
-            Assign(_smokes, maxSmoke, _candidates, false);
+            EnsureVolumeSmoke();
             AssignLights();
         }
 
@@ -127,10 +115,31 @@ namespace Fire3D.Unity.Presentation
 
                 var i = cells[k].cell;
                 var center = (Vector3)grid.Layout.CellCenter(i);
-                ps.transform.position = fire ? center : center + Vector3.up * 1.6f;
                 var value = fire ? grid.Fire[i] : grid.Smoke[i];
-                // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
-                var target = fire ? Mathf.Lerp(0.55f, 1.4f, value) : Mathf.Lerp(0.7f, 1.3f, value);
+                float target;
+                if (fire)
+                {
+                    ps.transform.position = center;
+                    // Hierarchy scaling drives size and emission of every layer (flame, core, embers, glow, haze).
+                    target = Mathf.Lerp(0.55f, 1.4f, value);
+                }
+                else
+                {
+                    // Jitter inside the cell, deterministic per cell so an emitter does not drift between refreshes.
+                    var jx = Mathf.PerlinNoise(i * 0.173f, 0.37f) - 0.5f;
+                    var jz = Mathf.PerlinNoise(0.61f, i * 0.131f) - 0.5f;
+                    var at = center + new Vector3(jx, 0f, jz) * grid.Layout.CellSize * 1.6f;
+                    // Hot smoke collects under the ceiling: the denser the cell, the higher the emitter.
+                    at.y += Mathf.Lerp(1.4f, 2.4f, Mathf.Clamp01(value));
+                    ps.transform.position = at;
+                    // Free width around the emitter: a sprite wider than the room gets sliced flat by the walls, so
+                    // scale the whole system to the clearance (0.8 of the narrowest free span). 2.2 m = sprite size at scale 1.
+                    var sizeCap = Mathf.Clamp(FreeSpan(at) * 0.8f / 2.2f, 0.45f, 1.25f);
+                    target = Mathf.Min(Mathf.Lerp(0.75f, 1.25f, value), sizeCap);
+                    // Thin smoke stays see-through so billows show; dense smoke builds up to near opaque.
+                    var sm = ps.main;
+                    sm.startColor = new Color(0.8f, 0.78f, 0.76f, Mathf.Lerp(0.5f, 1f, Mathf.Clamp01(value)));
+                }
                 var current = ps.transform.localScale.x;
                 ps.transform.localScale = Vector3.one * Mathf.Lerp(current < 0.01f ? target : current, target, 0.35f);
                 if (fire)
@@ -139,6 +148,45 @@ namespace Fire3D.Unity.Presentation
                 if (!ps.isEmitting)
                     ps.Play(true);
             }
+        }
+
+        /// <summary>
+        /// The smoke field is drawn by one <see cref="VolumeSmoke"/> that spawns puffs straight into the smoky grid
+        /// cells (its material, flipbook and vertex streams come from the smoke prefab), instead of balls around emitters.
+        /// </summary>
+        private void EnsureVolumeSmoke()
+        {
+            if (_volumeSmoke != null)
+                return;
+            var prefab = _assets?.SmokePrefab;
+            var ps = prefab != null ? Instantiate(prefab, transform) : VfxFactory.Create(false, transform);
+            ps.gameObject.name = "SmokeVolume";
+            ps.gameObject.SetActive(true);
+            ps.transform.localScale = Vector3.one;
+            _volumeSmoke = ps.gameObject.AddComponent<VolumeSmoke>();
+            _volumeSmoke.Bind(_sim, _viewer, FireQuality.MaxSmoke * 100); // Low 800, Medium 1400, High 2000 puffs
+        }
+
+        private static readonly Vector3[] SpanDirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };
+
+        /// <summary>Narrowest wall-to-wall distance through <paramref name="at"/> along the grid axes (meters, capped at 8).</summary>
+        private static float FreeSpan(Vector3 at)
+        {
+            var best = 8f;
+            for (var axis = 0; axis < 2; axis++)
+            {
+                var span = 0f;
+                for (var side = 0; side < 2; side++)
+                {
+                    var hitWall = Physics.Raycast(at, SpanDirs[axis * 2 + side], out var hit, 4f, ~0, QueryTriggerInteraction.Ignore)
+                                  && !(hit.collider is CharacterController);
+                    span += hitWall ? hit.distance : 4f;
+                }
+
+                best = Mathf.Min(best, span);
+            }
+
+            return best;
         }
 
         private bool _anyHaze;

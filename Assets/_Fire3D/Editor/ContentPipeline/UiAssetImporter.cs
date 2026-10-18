@@ -12,20 +12,48 @@ namespace Fire3D.Unity.Editor.ContentPipeline
         private const string IconFolder = "Assets/_Fire3D/Resources/UI/Icons/";
         private const string VfxFolder = "Assets/_Fire3D/Art/VFX/";
 
+        private const string SignFolder = "Assets/_Fire3D/Art/Signs/";
+
         private void OnPreprocessTexture()
         {
+            if (assetPath.StartsWith(SignFolder))
+            {
+                var sg = (TextureImporter)assetImporter;
+                sg.textureType = TextureImporterType.Default;
+                sg.sRGBTexture = true;
+                sg.alphaSource = TextureImporterAlphaSource.None;
+                sg.mipmapEnabled = true;
+                sg.filterMode = FilterMode.Trilinear;
+                sg.anisoLevel = 8;
+                sg.wrapMode = TextureWrapMode.Clamp;
+                sg.maxTextureSize = 512;
+                var a = sg.GetPlatformTextureSettings("Android");
+                a.overridden = true;
+                a.format = TextureImporterFormat.ASTC_4x4;
+                a.maxTextureSize = 512;
+                sg.SetPlatformTextureSettings(a);
+                return;
+            }
+
             if (assetPath.StartsWith(VfxFolder))
             {
                 var v = (TextureImporter)assetImporter;
                 v.textureType = TextureImporterType.Default;
-                v.alphaIsTransparency = true;
+                // Six-way smoke atlases are data, not colour: linear, and the RGB under low alpha matters.
+                var data = assetPath.Contains("SmokeLight");
+                v.alphaIsTransparency = !data;
                 v.alphaSource = TextureImporterAlphaSource.FromInput;
                 v.mipmapEnabled = true;
                 v.filterMode = FilterMode.Trilinear;
                 // Noise tiles; flipbook cells must not bleed into each other.
                 var noise = assetPath.Contains("Noise");
+                // Flipbook atlases have no padding between cells: mipmaps average neighbouring frames into a cell's
+                // transparent border, which shows as square outlines on distant sprites. No mips for atlases.
+                var atlas = assetPath.Contains("Flipbook") || assetPath.Contains("SmokeLight");
+                v.mipmapEnabled = !atlas;
+                v.filterMode = atlas ? FilterMode.Bilinear : FilterMode.Trilinear;
                 v.wrapMode = noise ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-                v.sRGBTexture = !noise;
+                v.sRGBTexture = !noise && !data;
                 v.maxTextureSize = 1024;
                 var android = v.GetPlatformTextureSettings("Android");
                 android.overridden = true;

@@ -23,7 +23,7 @@ namespace Fire3D.Unity.Presentation
 
         public static bool HeatHaze => Current != Tier.Low;
         public static int MaxEmitters => Current switch { Tier.Low => 16, Tier.Medium => 28, _ => 40 };
-        public static int MaxSmoke => Current switch { Tier.Low => 12, Tier.Medium => 22, _ => 32 };
+        public static int MaxSmoke => Current switch { Tier.Low => 8, Tier.Medium => 14, _ => 20 };
         public static int MaxLights => Current switch { Tier.Low => 2, Tier.Medium => 4, _ => 6 };
         public static int MaxHazeEmitters => Current switch { Tier.Low => 0, Tier.Medium => 3, _ => 6 };
 

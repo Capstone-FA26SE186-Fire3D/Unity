@@ -1,4 +1,5 @@
 using Fire3D.Unity.Content;
+using UnityEditor;
 using UnityEngine;
 
 namespace Fire3D.Unity.Editor.ContentPipeline
@@ -56,21 +57,62 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             em.AddComponent<LightGroupMember>().Group = LightGroup.Emergency;
         }
 
-        public static void ExitSign(Vector3 pos, Quaternion rot, Transform parent)
+        public enum ExitSignKind
         {
-            var sign = GrayboxMesh.Create("ExitSign", parent, Vector3.zero, new Vector3(0.36f, 0.16f, 0.04f),
-                PrototypeFactory.Lit(new Color(0.1f, 0.8f, 0.3f), 0.3f, 0f, new Color(0.1f, 1f, 0.35f) * 2.5f), false);
-            sign.transform.SetPositionAndRotation(pos, rot);
-            sign.AddComponent<LightGroupMember>().Group = LightGroup.ExitSign;
-            var glow = new GameObject("ExitGlow").AddComponent<Light>();
-            glow.transform.SetParent(sign.transform, false);
-            glow.transform.localPosition = new Vector3(0f, -0.2f, -0.2f);
-            glow.type = LightType.Point;
-            glow.color = new Color(0.25f, 1f, 0.45f);
-            glow.intensity = 0.6f;
-            glow.range = 3f;
-            glow.lightmapBakeType = LightmapBakeType.Realtime;
-            glow.gameObject.AddComponent<LightGroupMember>().Group = LightGroup.ExitSign;
+            /// <summary>"LỐI RA / EXIT": the way out of the building (running man towards an open door).</summary>
+            Final,
+            /// <summary>"THOÁT HIỂM / EXIT" with stairs going down.</summary>
+            StairDown,
+            /// <summary>"THOÁT HIỂM / EXIT" with stairs going up.</summary>
+            StairUp,
+            Left,
+            Right,
+        }
+
+        private const string SignFolder = "Assets/_Fire3D/Art/Signs";
+
+        /// <summary>
+        /// Emergency exit sign: a dark housing with a textured, emissive face (running-man pictogram, text, arrow). The face
+        /// glows through baked emission, so the green spill on the walls has the sign's own soft shape; the old close-range
+        /// point light baked into hard-edged rectangles on the wall above the door. The sign's face looks along its local -Z,
+        /// so pass a rotation that turns it towards the people who need it.
+        /// </summary>
+        public static void ExitSign(Vector3 pos, Quaternion rot, Transform parent, ExitSignKind kind = ExitSignKind.Final)
+        {
+            var root = new GameObject("ExitSign_" + kind);
+            root.transform.SetParent(parent, false);
+            root.transform.SetPositionAndRotation(pos, rot);
+            root.AddComponent<LightGroupMember>().Group = LightGroup.ExitSign;
+
+            GrayboxMesh.Create("Housing", root.transform, Vector3.zero, new Vector3(0.54f, 0.29f, 0.06f),
+                PrototypeFactory.Lit(new Color(0.1f, 0.11f, 0.12f), 0.35f), false);
+
+            var face = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            face.name = "Face";
+            Object.DestroyImmediate(face.GetComponent<Collider>());
+            face.transform.SetParent(root.transform, false);
+            face.transform.localPosition = new Vector3(0f, 0f, -0.031f);
+            face.transform.localScale = new Vector3(0.5f, 0.25f, 1f);
+            face.GetComponent<MeshRenderer>().sharedMaterial = SignMaterial(kind);
+        }
+
+        private static Material SignMaterial(ExitSignKind kind)
+        {
+            var path = $"{SignFolder}/Mat_Exit{kind}.mat";
+            var existing = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (existing != null)
+                return existing;
+            var texture = AssetDatabase.LoadAssetAtPath<Texture2D>($"{SignFolder}/Exit{kind}.png");
+            var m = new Material(Shader.Find("Universal Render Pipeline/Lit")) { name = $"Mat_Exit{kind}" };
+            m.SetTexture("_BaseMap", texture);
+            m.SetColor("_BaseColor", Color.white);
+            m.SetFloat("_Smoothness", 0.15f);
+            m.EnableKeyword("_EMISSION");
+            m.SetTexture("_EmissionMap", texture);
+            m.SetColor("_EmissionColor", Color.white * 1.8f);
+            m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
+            AssetDatabase.CreateAsset(m, path);
+            return m;
         }
     }
 }

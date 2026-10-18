@@ -53,6 +53,9 @@ namespace Fire3D.Unity.Tests.PlayModeTests
                 for (var i = 0; i < 90; i++)
                     yield return null;
 
+                // Magenta particles mean a renderer has no material (stale prefab references after rebuilding VFX assets).
+                foreach (var pr in UnityEngine.Object.FindObjectsByType<ParticleSystemRenderer>(FindObjectsSortMode.None))
+                    Assert.IsNotNull(pr.sharedMaterial, $"{pr.gameObject.name} has no material");
                 var count = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None).Length;
                 Assert.Greater(count, 4, "flame, core, embers, glow layers exist");
                 var hazeActive = false;
