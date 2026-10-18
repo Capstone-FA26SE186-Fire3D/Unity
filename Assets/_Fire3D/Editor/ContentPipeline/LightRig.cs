@@ -12,7 +12,14 @@ namespace Fire3D.Unity.Editor.ContentPipeline
     /// </summary>
     public static class LightRig
     {
-        public static void Room(string name, string category, Bounds room, float ceilingY, Transform parent)
+        public static void Room(string name, string category, Bounds room, float ceilingY, Transform parent) =>
+            Room(name, category, room, _ => ceilingY, parent);
+
+        /// <summary>
+        /// Same as <see cref="Room(string,string,Bounds,float,Transform)"/> with the ceiling height resolved per panel; a
+        /// null ceiling (open stairwell, double-height void) skips that panel instead of hanging it in mid-air.
+        /// </summary>
+        public static void Room(string name, string category, Bounds room, System.Func<Vector3, float?> ceilingAt, Transform parent)
         {
             var spacing = category == "corridor" ? 4f : 5f;
             var nx = Mathf.Max(1, Mathf.RoundToInt(room.size.x / spacing));
@@ -20,7 +27,11 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             for (var i = 0; i < nx; i++)
             for (var k = 0; k < nz; k++)
             {
-                var p = new Vector3(room.min.x + (i + 0.5f) * room.size.x / nx, ceilingY - 0.05f, room.min.z + (k + 0.5f) * room.size.z / nz);
+                var at = new Vector3(room.min.x + (i + 0.5f) * room.size.x / nx, room.min.y, room.min.z + (k + 0.5f) * room.size.z / nz);
+                var ceiling = ceilingAt(at);
+                if (ceiling == null)
+                    continue;
+                var p = new Vector3(at.x, ceiling.Value - 0.05f, at.z);
                 // Rectangle area light = a real panel: wide soft penumbrae and gentle falloff once baked, instead of the
                 // hard hot spots and sharp shadow edges a point light leaves on walls and furniture.
                 var go = new GameObject($"{name}_Light_{i}_{k}");
@@ -46,7 +57,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 return;
             var em = new GameObject($"{name}_Emergency");
             em.transform.SetParent(parent, false);
-            em.transform.position = new Vector3(room.center.x, ceilingY - 0.3f, room.center.z);
+            em.transform.position = new Vector3(room.center.x, (ceilingAt(new Vector3(room.center.x, room.min.y, room.center.z)) ?? room.max.y) - 0.3f, room.center.z);
             var e = em.AddComponent<Light>();
             e.type = LightType.Point;
             e.color = new Color(1f, 0.32f, 0.22f);

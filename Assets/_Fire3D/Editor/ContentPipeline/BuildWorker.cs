@@ -471,16 +471,17 @@ namespace Fire3D.Unity.Editor.ContentPipeline
         }
 
         /// <summary>
-        /// IFC rooms are often modelled shorter than the storey (Revit spaces stop at 2.6 m under a 3.1 m slab), so lights at
-        /// the space top would float mid-air or hang in a stairwell. Use the real ceiling above the room centre (first surface
-        /// 1.8–4.5 m above the floor); stair spaces keep their top, which is the ceiling of the highest floor they serve.
+        /// IFC rooms are often modelled shorter than the storey (Revit spaces stop at 2.6 m under a 3.1 m slab) and their
+        /// boxes can overlap a stairwell, so a light at the space top floats mid-air. A panel goes under the first
+        /// down-facing, room-sized surface 1.8–4.5 m above the floor at its own position; none there (stairwell, void) means
+        /// no panel. Stair spaces keep their top, the ceiling of the highest floor they serve.
         /// </summary>
-        private static float CeilingOf(Bounds room, string category)
+        private static float? CeilingAbove(Vector3 floorPoint, Bounds room, string category)
         {
             if (category == "stair")
                 return room.max.y;
             Physics.SyncTransforms();
-            var from = new Vector3(room.center.x, room.min.y + 1.2f, room.center.z);
+            var from = new Vector3(floorPoint.x, room.min.y + 1.2f, floorPoint.z);
             foreach (var hit in Physics.RaycastAll(from, Vector3.up, 3.5f, ~0, QueryTriggerInteraction.Ignore).OrderBy(h => h.distance))
             {
                 var size = hit.collider.bounds.size;
@@ -490,7 +491,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 return hit.point.y;
             }
 
-            return room.max.y;
+            return null;
         }
 
         /// <summary>Wraps an IFC door node so it can swing: hinge on one end of the door's long horizontal axis.</summary>
@@ -540,7 +541,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 vol.Category = s.Category ?? "room";
                 vol.Bounds = bounds;
                 if (vol.Category != "outdoor")
-                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, CeilingOf(bounds, vol.Category), root.transform);
+                    LightRig.Room(s.LongName ?? s.Name ?? s.IfcGlobalId, vol.Category, bounds, at => CeilingAbove(at, bounds, vol.Category), root.transform);
             }
         }
 
