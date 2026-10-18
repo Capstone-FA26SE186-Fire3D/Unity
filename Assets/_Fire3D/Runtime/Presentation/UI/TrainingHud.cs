@@ -343,7 +343,7 @@ namespace Fire3D.Unity.Presentation.UI
             _crouch = HudButton.Create(hud, "Crouch", anchor, Vector2.zero, 104f);
             _crouch.Rect.pivot = new Vector2(0.5f, 0.5f);
             _crouch.Rect.anchoredPosition = new Vector2(-150f, 470f);
-            _crouch.Up += () => _motor?.SetCrouched(!_motor.Crouched);
+            _crouch.Up += () => _motor?.CycleStance();
             _touchBlockers.Add(_crouch.Rect);
         }
 
@@ -558,7 +558,9 @@ namespace Fire3D.Unity.Presentation.UI
 
             if (_motor != null)
             {
-                _crouch.SetContent(_motor.Crouched ? "stand" : "crouch", _motor.Crouched ? "stand" : "crouch", _motor.Crouched ? "Đứng dậy" : "Cúi thấp");
+                var stanceIcon = _motor.Crawling ? "stand" : _motor.Crouched ? "crawl" : "crouch";
+                var stanceLabel = _motor.Crawling ? "Đứng dậy" : _motor.Crouched ? "Bò" : "Cúi thấp";
+                _crouch.SetContent(stanceIcon, stanceIcon, stanceLabel);
                 _crouch.SetToggled(_motor.Crouched);
                 _crouch.SetRecommended(!_motor.Crouched && _vitals != null && _vitals.LocalSmoke > 0.3f && _model.Mode == TrainingMode.Guided);
             }

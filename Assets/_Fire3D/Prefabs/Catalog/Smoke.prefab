@@ -280,7 +280,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 56
+    maxNumParticles: 1200
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -615,9 +615,9 @@ ParticleSystem:
       maxColor: {r: 1, g: 1, b: 1, a: 1}
       maxGradient:
         serializedVersion: 2
-        key0: {r: 0.3, g: 0.26, b: 0.23, a: 0}
-        key1: {r: 0.42, g: 0.4, b: 0.39, a: 0.5}
-        key2: {r: 0.58, g: 0.58, b: 0.6, a: 0.425}
+        key0: {r: 1, g: 1, b: 1, a: 0}
+        key1: {r: 1, g: 1, b: 1, a: 0.5}
+        key2: {r: 1, g: 1, b: 1, a: 0.425}
         key3: {r: 0, g: 0, b: 0, a: 0}
         key4: {r: 0, g: 0, b: 0, a: 0}
         key5: {r: 0, g: 0, b: 0, a: 0}

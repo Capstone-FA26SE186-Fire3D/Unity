@@ -59,7 +59,7 @@ namespace Fire3D.Unity.Tests.PlayModeTests
 
             var smokes = UnityEngine.Object.FindObjectsByType<ParticleSystem>(FindObjectsSortMode.None)
                 .Where(p => p.gameObject.name.StartsWith("Smoke")).ToList();
-            var live = smokes.Count(p => p.isEmitting);
+            var live = smokes.Count(p => p.particleCount > 0);
             var particles = smokes.Sum(p => p.particleCount);
             Debug.Log($"[Fire3D smoke] max grid smoke {maxSmoke:F2}, cells>0.18: {cellsOver}, smoke emitters {smokes.Count} (emitting {live}), live particles {particles}, fog {RenderSettings.fogDensity:F3}");
 

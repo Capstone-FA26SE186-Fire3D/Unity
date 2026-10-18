@@ -28,11 +28,16 @@ namespace Fire3D.Unity.Tests.PlayModeTests
         {
             yield return SceneManager.LoadSceneAsync(Scene, LoadSceneMode.Single);
             yield return null;
-            _app = Object.FindAnyObjectByType<Fire3DApp>();
-            Assert.IsNotNull(_app, "Fire3DApp in dev scene");
             yield return null;
             _session = Object.FindAnyObjectByType<TrainingSession>();
             Assert.IsNotNull(_session, "DevLauncher should start a session");
+            // The app that owns this session: the one whose bridge saw this session launch. A previous test's scene
+            // can still be unloading for a frame, so FindAnyObjectByType alone may return a stale app.
+            _app = null;
+            foreach (var app in Object.FindObjectsByType<Fire3DApp>(FindObjectsSortMode.None))
+                if (((Fire3DBridge)app.Bridge).Sent.Any(m => m.Type == BridgeMessages.Launched))
+                    _app = app;
+            Assert.IsNotNull(_app, "Fire3DApp that launched the session");
             _session.StartRunning();
             yield return null;
         }
@@ -116,7 +121,7 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             Assert.IsTrue(_session.Completion.ReachedExit, state);
             Assert.AreEqual(EndReason.Finished, _session.Completion.EndReason, state);
             Assert.AreEqual(1, _session.Log.Count(EventTypes.ExitReached), state);
-            var bridge = (Fire3DBridge)_app.Bridge;
+            var bridge = (Fire3DBridge)_session.Bridge; // the session's own bridge, never a stale app's
             Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Completed), "Completed message sent; " + state);
             Assert.IsTrue(bridge.Sent.Any(m => m.Type == BridgeMessages.Events), "Events message sent; " + state);
         }

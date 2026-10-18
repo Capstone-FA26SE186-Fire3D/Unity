@@ -182,7 +182,9 @@ namespace Fire3D.Unity.Presentation
             // the smoke reads as a black box. Black soot at the source, greying as it spreads and cools.
             // More, smaller puffs per emitter (rather than a few room-sized ones): the cloud's outline becomes the sum of
             // many curved edges, and nothing is wide enough to be sliced flat by a corridor wall.
-            var ps = NewSystem(go, 56, 4.5f, 7.5f);
+            // Emission/shape are overridden by VolumeSmoke at runtime (it emits straight into smoky grid cells);
+            // the values here only matter for the prefab preview.
+            var ps = NewSystem(go, 1200, 4.5f, 7.5f);
             var main = ps.main;
             main.startSpeed = new ParticleSystem.MinMaxCurve(0.1f, 0.3f);
             main.startSize = new ParticleSystem.MinMaxCurve(1.0f, 1.7f);
@@ -198,7 +200,8 @@ namespace Fire3D.Unity.Presentation
             rot.enabled = true;
             rot.z = new ParticleSystem.MinMaxCurve(-0.2f, 0.2f);
             Flipbook(ps, tex?.Smoke != null);
-            Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.22f, 0.62f, 0.5f);
+            // Neutral ramp: colour comes from VolumeSmoke per puff (fresh pale → aged soot); this only fades in/out.
+            Fade(ps, Color.white, Color.white, Color.white, 0.22f, 0.62f, 0.5f);
             Size(ps, 0.55f, 1f, 1.35f);
             Turbulence(ps, 0.16f, 0.45f);
             var sixWay = tex?.SmokeShader != null && tex.SmokeLightA != null && tex.SmokeLightB != null;
@@ -213,8 +216,8 @@ namespace Fire3D.Unity.Presentation
             m.SetTexture("_LightmapA", tex.SmokeLightA);
             m.SetTexture("_LightmapB", tex.SmokeLightB);
             m.SetColor("_BaseColor", Color.white);
-            m.SetFloat("_LightGain", 1.1f);
-            m.SetFloat("_Ambient", 1.1f);
+            m.SetFloat("_LightGain", 0.75f);
+            m.SetFloat("_Ambient", 1.2f);
             return m;
         }
 

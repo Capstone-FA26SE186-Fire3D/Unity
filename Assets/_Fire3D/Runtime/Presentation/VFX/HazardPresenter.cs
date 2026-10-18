@@ -23,7 +23,7 @@ namespace Fire3D.Unity.Presentation
         [SerializeField] private Color smokeFog = new(0.18f, 0.17f, 0.16f);
 
         private readonly List<ParticleSystem> _fires = new();
-        private readonly List<ParticleSystem> _smokes = new();
+        private VolumeSmoke _volumeSmoke;
         private readonly List<Light> _fireLights = new();
         private readonly List<(float score, int cell)> _candidates = new();
         private FireSimulation _sim;
@@ -92,22 +92,7 @@ namespace Fire3D.Unity.Presentation
             _candidates.Sort((a, b) => b.score.CompareTo(a.score));
             Assign(_fires, maxFires, _candidates, true);
 
-            // Smoke candidates on a staggered lattice (odd rows shifted) so emitters never line up along a corridor
-            // axis: a straight row of equal clouds reads as a row of cards. Stride 4 cells = 2 m.
-            _candidates.Clear();
-            var row = 0;
-            for (var dz = -r; dz <= r; dz += 4, row++)
-            for (var dx = -r + (row % 2 == 0 ? 0 : 2); dx <= r; dx += 4)
-            {
-                if (!layout.InBounds(floor, c.x + dx, c.z + dz))
-                    continue;
-                var i = layout.Index(floor, c.x + dx, c.z + dz);
-                if (grid.Smoke[i] > 0.1f && grid.Fire[i] < 0.5f)
-                    _candidates.Add((grid.Smoke[i] - math.length(new float2(dx, dz)) * 0.01f, i));
-            }
-
-            _candidates.Sort((a, b) => b.score.CompareTo(a.score));
-            Assign(_smokes, maxSmoke, _candidates, false);
+            EnsureVolumeSmoke();
             AssignLights();
         }
 
@@ -163,6 +148,23 @@ namespace Fire3D.Unity.Presentation
                 if (!ps.isEmitting)
                     ps.Play(true);
             }
+        }
+
+        /// <summary>
+        /// The smoke field is drawn by one <see cref="VolumeSmoke"/> that spawns puffs straight into the smoky grid
+        /// cells (its material, flipbook and vertex streams come from the smoke prefab), instead of balls around emitters.
+        /// </summary>
+        private void EnsureVolumeSmoke()
+        {
+            if (_volumeSmoke != null)
+                return;
+            var prefab = _assets?.SmokePrefab;
+            var ps = prefab != null ? Instantiate(prefab, transform) : VfxFactory.Create(false, transform);
+            ps.gameObject.name = "SmokeVolume";
+            ps.gameObject.SetActive(true);
+            ps.transform.localScale = Vector3.one;
+            _volumeSmoke = ps.gameObject.AddComponent<VolumeSmoke>();
+            _volumeSmoke.Bind(_sim, _viewer, FireQuality.MaxSmoke * 100); // Low 800, Medium 1400, High 2000 puffs
         }
 
         private static readonly Vector3[] SpanDirs = { Vector3.right, Vector3.left, Vector3.forward, Vector3.back };

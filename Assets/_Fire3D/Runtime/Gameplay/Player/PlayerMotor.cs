@@ -15,11 +15,13 @@ namespace Fire3D.Unity.Gameplay.Player
         [SerializeField] private float walkSpeed = 1.6f;
         [SerializeField] private float runSpeed = 3.3f;
         [SerializeField] private float crouchSpeed = 0.85f;
+        [SerializeField] private float crawlSpeed = 0.5f;
         [SerializeField] private float acceleration = 10f;
         [SerializeField] private float turnSpeedDegrees = 600f;
         [SerializeField] private float gravity = -20f;
         [SerializeField] private float standingHeight = 1.75f;
         [SerializeField] private float crouchHeight = 1.1f;
+        [SerializeField] private float crawlHeight = 0.6f;
         [SerializeField] private ThirdPersonCameraRig cameraRig;
         [SerializeField] private Transform visual;
 
@@ -32,6 +34,12 @@ namespace Fire3D.Unity.Gameplay.Player
         private float _crouchBlend;
 
         public bool Crouched { get; private set; }
+
+        /// <summary>Lowest stance: on hands and knees, head at ~0.5 m, under all but the thickest smoke layer.</summary>
+        public bool Crawling { get; private set; }
+
+        /// <summary>Eye/mouth height above the feet for the current stance (what the smoke layer is tested against).</summary>
+        public float HeadHeight => Crawling ? 0.5f : Crouched ? 1.0f : 1.55f;
         public bool Running { get; private set; }
         public bool InputEnabled { get; set; } = true;
 
@@ -90,11 +98,11 @@ namespace Fire3D.Unity.Gameplay.Player
             var frame = InputEnabled && !ActionLock ? _input?.Current ?? default : default;
 
             if (frame.CrouchToggled)
-                SetCrouched(!Crouched);
+                CycleStance();
 
             var canRun = !Crouched && frame.Sprint && (_vitals == null || _vitals.Stamina > 0.05f);
             Running = canRun && frame.Move.sqrMagnitude > 0.25f;
-            var maxSpeed = (Crouched ? crouchSpeed : Running ? runSpeed : walkSpeed) * SpeedFactor;
+            var maxSpeed = (Crawling ? crawlSpeed : Crouched ? crouchSpeed : Running ? runSpeed : walkSpeed) * SpeedFactor;
 
             var yaw = cameraRig != null ? cameraRig.Yaw : transform.eulerAngles.y;
             var desired = CameraRelativeMovement.PlanarDirection(frame.Move, yaw) * maxSpeed;
@@ -135,28 +143,63 @@ namespace Fire3D.Unity.Gameplay.Player
         {
             if (visual == null)
                 return;
-            _crouchBlend = Mathf.MoveTowards(_crouchBlend, Crouched ? 1f : 0f, dt * 7f);
-            var e = _crouchBlend * _crouchBlend * (3f - 2f * _crouchBlend);
-            visual.localScale = new Vector3(Mathf.Lerp(1f, 1.1f, e), Mathf.Lerp(1f, 0.72f, e), Mathf.Lerp(1f, 1.1f, e));
-            visual.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 14f, e), 0f, 0f);
+            // 0 = standing, 1 = crouched, 2 = crawling (flat, leaning well forward).
+            var stance = Crawling ? 2f : Crouched ? 1f : 0f;
+            _crouchBlend = Mathf.MoveTowards(_crouchBlend, stance, dt * 7f);
+            var c = Mathf.Clamp01(_crouchBlend);
+            var k = Mathf.Clamp01(_crouchBlend - 1f);
+            var e = c * c * (3f - 2f * c);
+            var f = k * k * (3f - 2f * k);
+            visual.localScale = new Vector3(Mathf.Lerp(1f, 1.1f, e), Mathf.Lerp(Mathf.Lerp(1f, 0.72f, e), 0.42f, f), Mathf.Lerp(1f, 1.1f, e));
+            visual.localRotation = Quaternion.Euler(Mathf.Lerp(Mathf.Lerp(0f, 14f, e), 62f, f), 0f, 0f);
         }
 
         public void SetCrouched(bool crouched)
         {
-            if (crouched == Crouched)
+            if (crouched == Crouched && !Crawling)
                 return;
-            if (!crouched && Physics.SphereCast(transform.position + Vector3.up * crouchHeight * 0.5f, _controller.radius * 0.9f,
-                    Vector3.up, out _, standingHeight - crouchHeight * 0.5f, ~0, QueryTriggerInteraction.Ignore))
+            if (!crouched && !HeadroomFor(standingHeight))
                 return; // No room to stand up.
             Crouched = crouched;
+            Crawling = false;
             ApplyHeight();
+        }
+
+        /// <summary>Hands and knees: the lowest stance, slowest, with the head under most smoke layers.</summary>
+        public void SetCrawling(bool crawling)
+        {
+            if (crawling == Crawling)
+                return;
+            if (!crawling && !HeadroomFor(crouchHeight))
+                return;
+            Crawling = crawling;
+            Crouched = crawling || Crouched;
+            ApplyHeight();
+        }
+
+        /// <summary>Stand → crouch → crawl → stand, as the one crouch button cycles.</summary>
+        public void CycleStance()
+        {
+            if (Crawling)
+                SetCrouched(false);
+            else if (Crouched)
+                SetCrawling(true);
+            else
+                SetCrouched(true);
+        }
+
+        private bool HeadroomFor(float height)
+        {
+            var current = _controller.height;
+            return !Physics.SphereCast(transform.position + Vector3.up * current * 0.5f, _controller.radius * 0.9f,
+                Vector3.up, out _, height - current * 0.5f, ~0, QueryTriggerInteraction.Ignore);
         }
 
         private void ApplyHeight()
         {
             if (_controller == null)
                 return;
-            var h = Crouched ? crouchHeight : standingHeight;
+            var h = Crawling ? crawlHeight : Crouched ? crouchHeight : standingHeight;
             _controller.height = h;
             _controller.center = new Vector3(0f, h * 0.5f, 0f);
             // Visual pose is handled by BlendCrouchPose.

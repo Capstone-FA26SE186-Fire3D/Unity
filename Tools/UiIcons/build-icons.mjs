@@ -63,7 +63,16 @@ const custom = {
     ["path", { d: "M9 13.5 7.5 20" }],
     ["path", { d: "M12 10.5l3.5 2" }],
     ["path", { d: "M4 21h16" }],
-  ],};
+  ],
+  // Crawling figure on hands and knees, same stroke conventions.
+  crawl: [
+    ["circle", { cx: "5", cy: "11", r: "2" }],
+    ["path", { d: "M7 12.5h8l3 3" }],
+    ["path", { d: "M9 12.5v5" }],
+    ["path", { d: "M15 12.5l-1 5" }],
+    ["path", { d: "M3 21h18" }],
+  ],
+};
 
 const attrs = (o) => Object.entries(o).filter(([k]) => k !== "key").map(([k, v]) => `${k}="${v}"`).join(" ");
 const svg = (nodes, stroke = 2.1) =>

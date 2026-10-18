@@ -92,11 +92,14 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             yield return Shot(dir, "06_side_view");
             cam.transform.SetPositionAndRotation(new Vector3(9f, 2.9f, 6.9f), Quaternion.LookRotation(new Vector3(1f, -0.9f, 0f)));
             yield return Shot(dir, "07_top_view");
+            // Kitchen doorway from the corridor: smoke should pour through the opening, not stop at the frame.
+            cam.transform.SetPositionAndRotation(new Vector3(11f, 1.5f, 7.6f), Quaternion.LookRotation(new Vector3(0f, 0.15f, -1f)));
+            yield return Shot(dir, "08_doorway");
 
             var grid = sim.Grid;
-            var stats = string.Join(" ", systems.Where(p => p.isEmitting).Select(p => $"[{p.transform.position.x:F1},{p.transform.position.y:F1},{p.transform.position.z:F1} s={p.transform.localScale.x:F2} n={p.particleCount}]"));
-            Debug.Log($"[Fire3D ablation] emitters {systems.Count(p => p.isEmitting)} {stats}");
-            Assert.Greater(systems.Count(p => p.isEmitting), 0);
+            var stats = string.Join(" ", systems.Where(p => p.particleCount > 0).Select(p => $"[{p.transform.position.x:F1},{p.transform.position.y:F1},{p.transform.position.z:F1} s={p.transform.localScale.x:F2} n={p.particleCount}]"));
+            Debug.Log($"[Fire3D ablation] emitters {systems.Count(p => p.particleCount > 0)} {stats}");
+            Assert.Greater(systems.Count(p => p.particleCount > 0), 0);
         }
 
         private static IEnumerator Shot(string dir, string name)
