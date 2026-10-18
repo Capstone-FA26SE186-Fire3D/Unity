@@ -21,6 +21,24 @@ namespace Fire3D.Unity.Content
         public List<CapabilityPrefab> Interactables = new();
         public GameObject PlayerPrefab;
         public GameObject NpcPrefab;
+
+        /// <summary>Rigged occupant models (Art/Characters); NPC views pick one per NPC id so a crowd is varied.</summary>
+        public List<GameObject> NpcVariants = new();
+
+        /// <summary>Selectable player bodies; <see cref="PlayerPrefab"/> is the default.</summary>
+        public List<GameObject> PlayerVariants = new();
+
+        /// <summary>A stable variant for <paramref name="id"/>, or <see cref="NpcPrefab"/> when there are none.</summary>
+        public GameObject NpcPrefabFor(string id)
+        {
+            if (NpcVariants == null || NpcVariants.Count == 0)
+                return NpcPrefab;
+            var h = 17;
+            foreach (var ch in id)
+                h = unchecked(h * 31 + ch);
+            var pick = NpcVariants[(int)((uint)h % (uint)NpcVariants.Count)];
+            return pick != null ? pick : NpcPrefab;
+        }
         public ParticleSystem FirePrefab;
         public ParticleSystem SmokePrefab;
         public ParticleSystem SprayPrefab;

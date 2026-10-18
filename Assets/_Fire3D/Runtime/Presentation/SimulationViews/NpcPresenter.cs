@@ -20,6 +20,7 @@ namespace Fire3D.Unity.Presentation
             public Renderer Icon;
             public NpcMode LastMode = (NpcMode)255;
             public Animator Animator;
+            public CharacterAnimator Character;
             public CharacterController Body;
             public float Fall;
         }
@@ -72,13 +73,20 @@ namespace Fire3D.Unity.Presentation
                     v.Body.Move(step + Vector3.up * v.Fall * Time.deltaTime);
                 }
 
-                if (a.Mode != NpcMode.Unconscious)
-                    v.Root.rotation = Quaternion.Slerp(v.Root.rotation, Quaternion.Euler(0f, a.Yaw, 0f), 1f - Mathf.Exp(-8f * Time.deltaTime));
-                else
-                    v.Root.rotation = Quaternion.Slerp(v.Root.rotation, Quaternion.Euler(-85f, a.Yaw, 0f), 1f - Mathf.Exp(-4f * Time.deltaTime));
+                // A rigged body lies down through its animation; the capsule stand-in is tipped over instead.
+                var lying = a.Mode == NpcMode.Unconscious;
+                var pitch = lying && v.Character == null ? -85f : 0f;
+                v.Root.rotation = Quaternion.Slerp(v.Root.rotation, Quaternion.Euler(pitch, a.Yaw, 0f), 1f - Mathf.Exp((lying ? -4f : -8f) * Time.deltaTime));
 
-                if (v.Animator != null)
+                if (v.Character != null)
+                {
+                    v.Character.Speed = lying ? 0f : Vector3.Magnitude(a.Velocity);
+                    v.Character.Down = lying;
+                }
+                else if (v.Animator != null)
+                {
                     v.Animator.SetFloat("Speed", Vector3.Magnitude(a.Velocity));
+                }
 
                 if (v.LastMode != a.Mode)
                 {
@@ -100,7 +108,7 @@ namespace Fire3D.Unity.Presentation
 
         private View CreateView(string id)
         {
-            var prefab = _assets != null ? _assets.NpcPrefab : null;
+            var prefab = _assets != null ? _assets.NpcPrefabFor(id) : null;
             var go = prefab != null ? Instantiate(prefab, transform) : PrototypeFactory.Person($"Npc_{id}", new Color(0.25f, 0.55f, 0.35f));
             go.transform.SetParent(transform, false);
             go.name = $"Npc_{id}";
@@ -122,7 +130,7 @@ namespace Fire3D.Unity.Presentation
             body.stepOffset = 0.3f;
             body.skinWidth = 0.03f;
             body.minMoveDistance = 0f;
-            return new View { Root = go.transform, Interactable = it, Icon = r, Animator = go.GetComponentInChildren<Animator>(), Body = body };
+            return new View { Root = go.transform, Interactable = it, Icon = r, Animator = go.GetComponentInChildren<Animator>(), Character = go.GetComponentInChildren<CharacterAnimator>(), Body = body };
         }
 
         private static readonly Dictionary<NpcMode, Material> Icons = new();
