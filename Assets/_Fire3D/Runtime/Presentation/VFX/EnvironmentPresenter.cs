@@ -128,6 +128,10 @@ namespace Fire3D.Unity.Presentation
             shape.rotation = new Vector3(90f, 0f, 0f);
             var r = go.GetComponent<ParticleSystemRenderer>();
             r.sharedMaterial = VfxFactory.ParticleMaterial(false);
+            // Droplets as short streaks along their path read as water; round dots read as dust.
+            r.renderMode = ParticleSystemRenderMode.Stretch;
+            r.velocityScale = 0.04f;
+            r.lengthScale = 2.2f;
             return ps;
         }
     }

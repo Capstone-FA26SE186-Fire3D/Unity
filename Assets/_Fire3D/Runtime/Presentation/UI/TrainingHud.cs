@@ -475,8 +475,9 @@ namespace Fire3D.Unity.Presentation.UI
             SetChip(_heatChip, _heatText, _vitals.HeatC > 38f, $"Nhiệt {Mathf.RoundToInt(_vitals.HeatC)}°", heat01 > 0.4f);
 
             var danger = Mathf.Max(heat01 * 0.8f, (1f - h) * 0.9f);
-            _vignette.color = new Color(0.75f, 0.08f, 0f, Mathf.Lerp(_vignette.color.a, Mathf.Clamp01(danger) * 0.75f, 1f - Mathf.Exp(-4f * dt)));
-            _smokeVignette.color = new Color(0.22f, 0.22f, 0.24f, Mathf.Lerp(_smokeVignette.color.a, smoke01 * 0.8f, 1f - Mathf.Exp(-3f * dt)));
+            _vignette.color = new Color(0.75f, 0.08f, 0f, Mathf.Lerp(_vignette.color.a, Mathf.Clamp01(danger) * 0.32f, 1f - Mathf.Exp(-4f * dt)));
+            // Smoke greys the screen edges; capped so a thin haze never blacks out the corners.
+            _smokeVignette.color = new Color(0.42f, 0.41f, 0.4f, Mathf.Lerp(_smokeVignette.color.a, Mathf.Clamp01(smoke01 * 1.1f) * 0.5f, 1f - Mathf.Exp(-3f * dt)));
         }
 
         private static void SetChip(RectTransform chip, Text text, bool show, string value, bool severe)
