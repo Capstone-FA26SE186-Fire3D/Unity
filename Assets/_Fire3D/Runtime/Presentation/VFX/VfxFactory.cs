@@ -11,6 +11,9 @@ namespace Fire3D.Unity.Presentation
         public Texture2D Glow;    // soft radial dot.
         public Texture2D Haze;    // tileable RG distortion noise.
         public Shader HazeShader;
+        public Texture2D SmokeLightA; // six-way lit smoke: R right, G top, B back, A transparency.
+        public Texture2D SmokeLightB; // R left, G bottom, B front.
+        public Shader SmokeShader;
     }
 
     /// <summary>
@@ -195,8 +198,19 @@ namespace Fire3D.Unity.Presentation
             Fade(ps, new Color(0.3f, 0.26f, 0.23f), new Color(0.42f, 0.4f, 0.39f), new Color(0.58f, 0.58f, 0.6f), 0.14f, 0.6f, 0.74f);
             Size(ps, 0.45f, 1f, 1.8f);
             Turbulence(ps, 0.12f, 0.5f);
-            Render(go, Material(fire: false, tex?.Smoke, additive: false, lit: true), tex?.Smoke != null, 0.6f);
+            var sixWay = tex?.SmokeShader != null && tex.SmokeLightA != null && tex.SmokeLightB != null;
+            var material = sixWay ? SixWaySmokeMaterial(tex) : Material(fire: false, tex?.Smoke, additive: false, lit: true);
+            Render(go, material, sixWay || tex?.Smoke != null, 0.6f);
             return ps;
+        }
+
+        private static Material SixWaySmokeMaterial(VfxTextures tex)
+        {
+            var m = new Material(tex.SmokeShader) { name = "SmokeSixWay", renderQueue = (int)RenderQueue.Transparent };
+            m.SetTexture("_LightmapA", tex.SmokeLightA);
+            m.SetTexture("_LightmapB", tex.SmokeLightB);
+            m.SetColor("_BaseColor", Color.white);
+            return m;
         }
 
         // ---- Building blocks -----------------------------------------------------------------------------------

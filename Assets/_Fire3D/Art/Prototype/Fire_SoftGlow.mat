@@ -80,7 +80,7 @@ Material:
     - _SoftParticleFadeParams: {r: 0, g: 2.2222223, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &7407508724090759072
+--- !u!114 &3509097301738265118
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

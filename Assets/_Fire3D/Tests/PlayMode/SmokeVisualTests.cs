@@ -22,12 +22,13 @@ namespace Fire3D.Unity.Tests.PlayModeTests
                 ? d
                 : Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Builds", "Autoplay", "smoke-" + DateTime.Now.ToString("yyyyMMdd-HHmmss")));
             Directory.CreateDirectory(dir);
-            FireQuality.Override(FireQuality.Tier.High);
+            FireQuality.Override(Enum.TryParse<FireQuality.Tier>(Environment.GetEnvironmentVariable("FET3D_FIRE_QUALITY"), true, out var tier) ? tier : FireQuality.Tier.High);
             yield return SceneManager.LoadSceneAsync("Development_Graybox", LoadSceneMode.Single);
             yield return null;
             yield return null;
             var session = UnityEngine.Object.FindAnyObjectByType<TrainingSession>();
             session.StartRunning();
+            session.enabled = false; // no vitals/exit checks: this test only looks at the hazard
             var sim = session.Simulation;
             foreach (var id in new[] { "door-L1-office-2", "door-L1-stair", "door-L2-stair" })
                 sim.Enqueue(new HazardCommand { Kind = HazardCommandKind.SetDoorOpen, ObjectId = id, Flag = true });

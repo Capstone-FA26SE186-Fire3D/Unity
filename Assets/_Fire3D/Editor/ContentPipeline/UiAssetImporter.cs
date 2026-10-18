@@ -18,14 +18,16 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             {
                 var v = (TextureImporter)assetImporter;
                 v.textureType = TextureImporterType.Default;
-                v.alphaIsTransparency = true;
+                // Six-way smoke atlases are data, not colour: linear, and the RGB under low alpha matters.
+                var data = assetPath.Contains("SmokeLight");
+                v.alphaIsTransparency = !data;
                 v.alphaSource = TextureImporterAlphaSource.FromInput;
                 v.mipmapEnabled = true;
                 v.filterMode = FilterMode.Trilinear;
                 // Noise tiles; flipbook cells must not bleed into each other.
                 var noise = assetPath.Contains("Noise");
                 v.wrapMode = noise ? TextureWrapMode.Repeat : TextureWrapMode.Clamp;
-                v.sRGBTexture = !noise;
+                v.sRGBTexture = !noise && !data;
                 v.maxTextureSize = 1024;
                 var android = v.GetPlatformTextureSettings("Android");
                 android.overridden = true;

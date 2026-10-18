@@ -127,6 +127,67 @@ def smoke_frame(noise, t, puff):
     return shade, alpha
 
 
+SIX_N = 64            # voxel grid per frame
+SIX_K = 6.0           # extinction scale (optical depth of a full-density column)
+
+
+def smoke_density(noise, t, puff):
+    """3D smoke density in [-1,1]^3, indexed [iy, ix, iz] (iy 0 = bottom), looping in t."""
+    n = SIX_N
+    c = (np.arange(n, dtype=np.float32) + 0.5) / n * 2 - 1
+    y, x, z = np.meshgrid(c, c, c, indexing="ij")
+    r = np.sqrt(x * x + y * y + z * z)
+    grow = 0.78 + 0.16 * t
+
+    def field(tt):
+        return noise.fbm(x * 2.3 + puff * 3.1 + tt * 0.5, y * 2.3 - tt * 0.7, z * 2.3 + puff * 1.3 + tt * 0.4, octaves=5, gain=0.6)
+
+    f = looped(field, t)
+    f = np.clip((f - 0.5) * 3.2 + 0.5, 0, 1)
+    rr = r + (f - 0.5) * 1.15
+    soft = np.exp(-(rr / grow) ** 2 * 1.5) * (1 - smoothstep(0.85, 1.0, r))
+    return np.clip(soft * 1.7 - (1 - f) * 0.95, 0, 1)
+
+
+def six_way_frame(noise, t):
+    """Bakes one frame: transparency plus the light reaching the visible smoke from each of six directions.
+
+    The camera looks down -z (image x right, y up). A light "from the right" shines along -x, and so on. For each
+    direction the lit value of a pixel is the density- and visibility-weighted mean of exp(-K * density between the
+    light and the voxel), so the lit side of a billow is bright and its far side dark.
+    """
+    d = smoke_density(noise, t, puff=0.0)          # [iy, ix, iz]
+    dz = 2.0 / SIX_N
+    k = SIX_K * dz
+
+    def transmit(axis, from_high):
+        # Optical depth accumulated from the light's side up to (not including) each voxel.
+        a = np.flip(d, axis) if from_high else d
+        depth = np.cumsum(a, axis=axis) - a
+        depth = np.flip(depth, axis) if from_high else depth
+        return np.exp(-k * depth)
+
+    # Camera sits at +z: visibility of a voxel = transmittance from +z.
+    view = transmit(2, True)
+    weight = d * view
+    norm = weight.sum(axis=2) + 1e-4
+
+    def lit(axis, from_high):
+        return (weight * transmit(axis, from_high)).sum(axis=2) / norm
+
+    alpha = 1 - np.exp(-k * d.sum(axis=2))
+    right, left = lit(1, True), lit(1, False)         # +x / -x
+    top, bottom = lit(0, True), lit(0, False)         # +y / -y
+    front, back = lit(2, True), lit(2, False)         # +z (camera side) / -z
+    flip = lambda a: np.flipud(a)                      # row 0 = top of the image
+    return [flip(c).astype(np.float32) for c in (right, top, back, alpha, left, bottom, front)]
+
+
+def upscale(chan):
+    img = Image.fromarray((np.clip(chan, 0, 1) * 255 + 0.5).astype(np.uint8), "L").resize((CELL, CELL), Image.BICUBIC)
+    return np.asarray(img, dtype=np.float32) / 255.0
+
+
 def atlas(frames_rgba):
     img = np.zeros((GRID * CELL, GRID * CELL, 4), dtype=np.float32)
     for i, f in enumerate(frames_rgba):
@@ -152,6 +213,17 @@ def main():
         shade, alpha = smoke_frame(smoke_noise, f / FRAMES, puff=0.0)
         frames.append(np.dstack([shade, shade, shade, alpha]))
     atlas(frames).save(os.path.join(OUT, "SmokeFlipbook.png"))
+
+    # Six-way lit smoke: two linear RGBA atlases (see Unity "Realistic smoke with 6-way lighting").
+    # A: R=light from right, G=from top, B=from behind, A=transparency.  B: R=from left, G=from bottom, B=from the camera side.
+    volume_noise = Noise3(2718)
+    frames_a, frames_b = [], []
+    for f in range(FRAMES):
+        right, top, back, alpha, left, bottom, front = (upscale(c) for c in six_way_frame(volume_noise, f / FRAMES))
+        frames_a.append(np.dstack([right, top, back, alpha]))
+        frames_b.append(np.dstack([left, bottom, front, np.ones_like(alpha)]))
+    atlas(frames_a).save(os.path.join(OUT, "SmokeLightA.png"))
+    atlas(frames_b).save(os.path.join(OUT, "SmokeLightB.png"))
 
     n = 128
     ys, xs = np.mgrid[0:n, 0:n].astype(np.float32)

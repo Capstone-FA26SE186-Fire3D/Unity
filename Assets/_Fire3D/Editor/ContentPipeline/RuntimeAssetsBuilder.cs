@@ -60,7 +60,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 assets.NpcPrefab = SavePrefab(PrototypeFactory.Person("NpcVisual", new Color(0.25f, 0.55f, 0.35f)), $"{PrefabDir}/NpcVisual.prefab");
 
             // VFX materials are rebuilt every time so tuning in VfxFactory is never hidden by a stale asset.
-            foreach (var stale in new[] { "Fire_FlameFlipbook", "Fire_SoftGlow", "SmokeFlipbook", "HeatHaze" })
+            foreach (var stale in new[] { "Fire_FlameFlipbook", "Fire_SoftGlow", "SmokeFlipbook", "HeatHaze", "SmokeSixWay" })
                 AssetDatabase.DeleteAsset($"{ProtoMatDir}/{stale}.mat");
             assets.FirePrefab = SaveVfx(true, $"{PrefabDir}/Flame.prefab");
             assets.SmokePrefab = SaveVfx(false, $"{PrefabDir}/Smoke.prefab");
@@ -136,6 +136,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             Glow = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/SoftGlow.png"),
             Haze = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/HazeNoise.png"),
             HazeShader = AssetDatabase.LoadAssetAtPath<Shader>($"{VfxDir}/HeatHaze.shader"),
+            SmokeLightA = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/SmokeLightA.png"),
+            SmokeLightB = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/SmokeLightB.png"),
+            SmokeShader = AssetDatabase.LoadAssetAtPath<Shader>($"{VfxDir}/SmokeSixWay.shader"),
         };
 
         private static ParticleSystem SaveVfx(bool fire, string path)
