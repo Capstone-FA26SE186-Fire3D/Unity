@@ -84,6 +84,7 @@ namespace Fire3D.Unity.Editor.Development
             camGo.transform.position = new Vector3(4f, 5f, -4f);
             var urpCam = camGo.AddComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>();
             urpCam.renderPostProcessing = true;
+            urpCam.dithering = true;
             CreatePostProcessing();
 
             var sun = new GameObject("Sun").AddComponent<Light>();
@@ -224,11 +225,15 @@ namespace Fire3D.Unity.Editor.Development
             {
                 Door("door-L1-exit-north", new Vector3(21f, e, 14f), false, level, "Lobby", width: 1.4f, exit: true);
                 Door("door-L1-exit-west", new Vector3(0f, e, 7f), true, level, "Corridor", exit: true);
-                ExitSign(new Vector3(21f, e + 2.45f, 13.85f), Quaternion.identity, level);
-                ExitSign(new Vector3(0.15f, e + 2.45f, 7f), Quaternion.Euler(0f, 90f, 0f), level);
+                // Faces look along local -Z: north sign towards the lobby (south), west sign into the corridor (east).
+                ExitSign(new Vector3(21f, e + 2.45f, 13.85f), Quaternion.identity, level, LightRig.ExitSignKind.Final);
+                ExitSign(new Vector3(0.15f, e + 2.45f, 7f), Quaternion.Euler(0f, -90f, 0f), level, LightRig.ExitSignKind.Final);
             }
-
-            ExitSign(new Vector3(21f, e + 2.45f, 6.15f), Quaternion.identity, level);
+            else
+            {
+                // Upper floors: the escape stair is behind the fire door; the sign faces the corridor (north).
+                ExitSign(new Vector3(21f, e + 2.45f, 6.15f), Quaternion.Euler(0f, 180f, 0f), level, LightRig.ExitSignKind.StairDown);
+            }
         }
 
         private static void WallX(string name, float z, float x0, float x1, float e, Transform parent, float[] doors, string mat, float doorWidth = DoorW)
@@ -366,7 +371,7 @@ namespace Fire3D.Unity.Editor.Development
             LightRig.Room(name, category, new Bounds(new Vector3((x0 + x1) * 0.5f, e + WallHeight * 0.5f, (z0 + z1) * 0.5f), new Vector3(x1 - x0, WallHeight, z1 - z0)),
                 e + WallHeight, parent);
 
-        private static void ExitSign(Vector3 pos, Quaternion rot, Transform parent) => LightRig.ExitSign(pos, rot, parent);
+        private static void ExitSign(Vector3 pos, Quaternion rot, Transform parent, LightRig.ExitSignKind kind) => LightRig.ExitSign(pos, rot, parent, kind);
 
         private static void AddSpace(string id, string category, Bounds bounds, string floorId, string name = null, bool register = true)
         {

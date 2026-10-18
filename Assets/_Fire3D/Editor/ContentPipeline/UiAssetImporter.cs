@@ -12,8 +12,29 @@ namespace Fire3D.Unity.Editor.ContentPipeline
         private const string IconFolder = "Assets/_Fire3D/Resources/UI/Icons/";
         private const string VfxFolder = "Assets/_Fire3D/Art/VFX/";
 
+        private const string SignFolder = "Assets/_Fire3D/Art/Signs/";
+
         private void OnPreprocessTexture()
         {
+            if (assetPath.StartsWith(SignFolder))
+            {
+                var sg = (TextureImporter)assetImporter;
+                sg.textureType = TextureImporterType.Default;
+                sg.sRGBTexture = true;
+                sg.alphaSource = TextureImporterAlphaSource.None;
+                sg.mipmapEnabled = true;
+                sg.filterMode = FilterMode.Trilinear;
+                sg.anisoLevel = 8;
+                sg.wrapMode = TextureWrapMode.Clamp;
+                sg.maxTextureSize = 512;
+                var a = sg.GetPlatformTextureSettings("Android");
+                a.overridden = true;
+                a.format = TextureImporterFormat.ASTC_4x4;
+                a.maxTextureSize = 512;
+                sg.SetPlatformTextureSettings(a);
+                return;
+            }
+
             if (assetPath.StartsWith(VfxFolder))
             {
                 var v = (TextureImporter)assetImporter;

@@ -29,6 +29,7 @@ namespace Fire3D.Unity.Gameplay.Player
         private Vector3 _planarVelocity;
         private float _verticalVelocity;
         private float _distanceSinceReport;
+        private float _crouchBlend;
 
         public bool Crouched { get; private set; }
         public bool Running { get; private set; }
@@ -118,6 +119,21 @@ namespace Fire3D.Unity.Gameplay.Player
 
             if (cameraRig != null)
                 cameraRig.Crouched = Crouched;
+            BlendCrouchPose(dt);
+        }
+
+        /// <summary>
+        /// Crouch as a pose, not a squash: squashing the body vertically turned the stand-in into a flat dome with its arms on
+        /// the floor, which read as "sinking into the ground". Lower the body by about a quarter, widen it a little and lean forward slightly, easing in and out.
+        /// </summary>
+        private void BlendCrouchPose(float dt)
+        {
+            if (visual == null)
+                return;
+            _crouchBlend = Mathf.MoveTowards(_crouchBlend, Crouched ? 1f : 0f, dt * 7f);
+            var e = _crouchBlend * _crouchBlend * (3f - 2f * _crouchBlend);
+            visual.localScale = new Vector3(Mathf.Lerp(1f, 1.1f, e), Mathf.Lerp(1f, 0.72f, e), Mathf.Lerp(1f, 1.1f, e));
+            visual.localRotation = Quaternion.Euler(Mathf.Lerp(0f, 14f, e), 0f, 0f);
         }
 
         public void SetCrouched(bool crouched)
@@ -138,8 +154,7 @@ namespace Fire3D.Unity.Gameplay.Player
             var h = Crouched ? crouchHeight : standingHeight;
             _controller.height = h;
             _controller.center = new Vector3(0f, h * 0.5f, 0f);
-            if (visual != null)
-                visual.localScale = new Vector3(1f, h / standingHeight, 1f);
+            // Visual pose is handled by BlendCrouchPose.
         }
     }
 }

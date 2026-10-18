@@ -38,8 +38,9 @@ namespace Fire3D.Unity.Gameplay.Cameras
         [SerializeField] private float initialPitch = 18f;
         [SerializeField] private Vector2 distanceLimits = new(1.4f, 5f);
         [SerializeField] private float initialDistance = 3.2f;
-        [SerializeField] private float collisionRadius = 0.22f;
-        [SerializeField] private float collisionPadding = 0.06f;
+        [SerializeField] private float collisionRadius = 0.28f;
+        [SerializeField] private float collisionPadding = 0.12f;
+        [SerializeField] private float clearanceRadius = 0.16f;
         [SerializeField] private float minCollisionDistance = 0.3f;
         [SerializeField] private float recoverSpeed = 2.5f;
         [SerializeField] private float followSharpness = 18f;
@@ -105,6 +106,14 @@ namespace Fire3D.Unity.Gameplay.Cameras
             _shakeUntil = Time.time + _shakeSeconds;
         }
 
+        /// <summary>Points the camera behind the target with an explicit pitch (degrees, positive looks down).</summary>
+        public void Snap(float yawDegrees, float pitchDegrees)
+        {
+            _yaw = yawDegrees;
+            _pitch = Mathf.Clamp(pitchDegrees, pitchLimits.x, pitchLimits.y);
+            _snapped = false;
+        }
+
         /// <summary>Points the camera behind the target, e.g. after spawning.</summary>
         public void SnapBehind(float yawDegrees)
         {
@@ -151,6 +160,10 @@ namespace Fire3D.Unity.Gameplay.Cameras
             _currentDistance = CameraCollisionSolver.Resolve(_currentDistance, _desiredDistance, hit, collisionPadding,
                 minCollisionDistance, recoverSpeed, deltaTime);
 
+            // Last line of defence: whatever the cast missed (pivot almost inside a wall, thin geometry, steep pitch),
+            // never leave the camera touching a solid, where the near plane shows the other side of the wall.
+            for (var k = 0; k < 10 && Overlaps(pivot + back * _currentDistance); k++)
+                _currentDistance = k == 9 ? 0f : _currentDistance * 0.7f;
             var position = pivot + back * _currentDistance;
             var shake = _shakeUntil > Time.time ? _shakeAmplitude * (_shakeUntil - Time.time) / _shakeSeconds : 0f;
             if (shake > 0f)
@@ -161,6 +174,22 @@ namespace Fire3D.Unity.Gameplay.Cameras
 
             transform.SetPositionAndRotation(position, rotation);
             UpdateTargetVisibility();
+        }
+
+        private readonly Collider[] _overlaps = new Collider[8];
+
+        private bool Overlaps(Vector3 point)
+        {
+            var n = Physics.OverlapSphereNonAlloc(point, clearanceRadius, _overlaps, obstacleMask, QueryTriggerInteraction.Ignore);
+            for (var i = 0; i < n; i++)
+            {
+                var c = _overlaps[i];
+                if ((target != null && c.transform.IsChildOf(target)) || c is CharacterController)
+                    continue;
+                return true;
+            }
+
+            return false;
         }
 
         private Vector3 SafePivot(Vector3 head, Vector3 desiredPivot)

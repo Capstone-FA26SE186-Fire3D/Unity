@@ -35,9 +35,9 @@ Material:
     m_Floats:
     - _Ambient: 0.9
     - _LightGain: 1.6
-    - _SoftDistance: 0.6
+    - _SoftDistance: 2
     m_Colors:
     - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
-    - _CameraFade: {r: 0.3, g: 1.2, b: 0, a: 0}
+    - _CameraFade: {r: 0.3, g: 1.6, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

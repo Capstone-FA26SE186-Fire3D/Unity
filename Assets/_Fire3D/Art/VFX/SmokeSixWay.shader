@@ -13,8 +13,8 @@ Shader "Fire3D/SmokeSixWay"
         _BaseColor ("Smoke Tint (rgb) and Opacity (a)", Color) = (1, 1, 1, 1)
         _Ambient ("Ambient Strength", Range(0, 2)) = 0.9
         _LightGain ("Light Gain", Range(0, 4)) = 1.6
-        _SoftDistance ("Soft Particle Distance", Float) = 0.6
-        _CameraFade ("Camera Fade Near, Far", Vector) = (0.3, 1.2, 0, 0)
+        _SoftDistance ("Soft Particle Distance", Float) = 2.0
+        _CameraFade ("Camera Fade Near, Far", Vector) = (0.3, 1.6, 0, 0)
     }
 
     SubShader
@@ -130,8 +130,12 @@ Shader "Fire3D/SmokeSixWay"
                 float2 suv = i.screen.xy / i.screen.w;
                 float sceneEye = LinearEyeDepth(SampleSceneDepth(suv), _ZBufferParams);
                 float fragEye = i.screen.w;
-                alpha *= saturate((sceneEye - fragEye) / max(_SoftDistance, 0.01));
-                alpha *= saturate((fragEye - _CameraFade.x) / max(_CameraFade.y - _CameraFade.x, 0.01));
+                // Smoothstepped and wide: seen at a grazing angle (corridor walls) a narrow linear fade turns into
+                // straight vertical edges where the sprite plane crosses the wall.
+                float soft = saturate((sceneEye - fragEye) / max(_SoftDistance, 0.01));
+                alpha *= soft * soft * (3.0 - 2.0 * soft);
+                float nearFade = saturate((fragEye - _CameraFade.x) / max(_CameraFade.y - _CameraFade.x, 0.01));
+                alpha *= nearFade * nearFade * (3.0 - 2.0 * nearFade);
 
                 half3 rgb = lit * i.color.rgb * _BaseColor.rgb;
                 rgb = MixFog(rgb, i.fog);
