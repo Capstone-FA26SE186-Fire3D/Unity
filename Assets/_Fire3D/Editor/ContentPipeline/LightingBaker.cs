@@ -18,10 +18,14 @@ namespace Fire3D.Unity.Editor.ContentPipeline
     {
         public sealed class Options
         {
-            public float TexelsPerUnit = 12f;
+            public float TexelsPerUnit = 16f;
             public int MaxLightmapSize = 1024;
             public bool UseGpu;
             public float ProbeSpacing = 2f;
+
+            // Sky/ground ambient (flat colour per scenario; the runtime applies it with the lightmaps).
+            public Color NormalAmbient = new(0.24f, 0.26f, 0.30f);
+            public Color OutageAmbient = new(0.035f, 0.035f, 0.045f);
         }
 
         public static LightingSettings EnsureLightingSettings(string folder, Options options)
@@ -43,14 +47,24 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             settings.lightmapPadding = 4;
             settings.directionalityMode = LightmapsMode.CombinedDirectional;
             settings.ao = true;
-            settings.aoMaxDistance = 0.6f;
+            settings.aoMaxDistance = 1.2f;
+            settings.aoExponentIndirect = 1f;
+            settings.aoExponentDirect = 0.35f;
             settings.lightmapCompression = LightmapCompression.NormalQuality;
             settings.mixedBakeMode = MixedLightingMode.Subtractive;
-            settings.directSampleCount = 32;
-            settings.indirectSampleCount = 256;
-            settings.environmentSampleCount = 128;
-            settings.maxBounces = 3;
-            settings.filteringMode = LightingSettings.FilterMode.Auto;
+            settings.directSampleCount = 64;
+            settings.indirectSampleCount = 512;
+            settings.environmentSampleCount = 256;
+            settings.maxBounces = 4;
+            settings.lightmapMaxSize = Mathf.Max(options.MaxLightmapSize, 2048);
+            // Denoised bake: smooth gradients instead of grainy or blotchy lightmaps (the main reason baked rooms look hard).
+            settings.filteringMode = LightingSettings.FilterMode.Advanced;
+            settings.denoiserTypeDirect = LightingSettings.DenoiserType.OpenImage;
+            settings.denoiserTypeIndirect = LightingSettings.DenoiserType.OpenImage;
+            settings.denoiserTypeAO = LightingSettings.DenoiserType.OpenImage;
+            settings.filterTypeDirect = LightingSettings.FilterType.None;
+            settings.filterTypeIndirect = LightingSettings.FilterType.None;
+            settings.filterTypeAO = LightingSettings.FilterType.None;
             EditorUtility.SetDirty(settings);
             return settings;
         }
@@ -180,7 +194,6 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 SceneManager.SetActiveScene(s);
                 Lightmapping.lightingSettings = settings;
                 RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-                RenderSettings.ambientLight = new Color(0.03f, 0.03f, 0.035f);
             }
 
             PrepareStatic(scenes);
@@ -189,6 +202,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             // BakeMultipleScenes re-opens the scenes from disk: save every change first and re-acquire after.
             // 1) Outage set → captured into scenario assets.
             SetLightsForScenario(scenes, LightingScenarioSwitcher.Outage);
+            SetAmbient(options.OutageAmbient);
             SaveAll(scenes);
             Lightmapping.BakeMultipleScenes(paths);
             var reopened = Reacquire(paths);
@@ -199,6 +213,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
             // 2) Normal set → stays in the scenes' own lighting data.
             SetLightsForScenario(reopened, LightingScenarioSwitcher.Normal);
+            SetAmbient(options.NormalAmbient);
             SaveAll(reopened);
             Lightmapping.BakeMultipleScenes(paths);
             SaveAll(Reacquire(paths));
@@ -207,6 +222,12 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             foreach (var kv in outagePaths)
                 outage[kv.Key] = AssetDatabase.LoadAssetAtPath<LightingScenarioData>(kv.Value);
             return outage;
+        }
+
+        private static void SetAmbient(Color c)
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = c;
         }
 
         private static void SaveAll(IEnumerable<Scene> scenes)

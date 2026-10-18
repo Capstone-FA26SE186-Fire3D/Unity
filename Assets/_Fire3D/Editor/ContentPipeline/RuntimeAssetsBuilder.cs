@@ -59,6 +59,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             if (assets.NpcPrefab == null || AssetDatabase.GetAssetPath(assets.NpcPrefab).StartsWith(PrefabDir))
                 assets.NpcPrefab = SavePrefab(PrototypeFactory.Person("NpcVisual", new Color(0.25f, 0.55f, 0.35f)), $"{PrefabDir}/NpcVisual.prefab");
 
+            // VFX materials are rebuilt every time so tuning in VfxFactory is never hidden by a stale asset.
+            foreach (var stale in new[] { "Fire_FlameFlipbook", "Fire_SoftGlow", "SmokeFlipbook", "HeatHaze" })
+                AssetDatabase.DeleteAsset($"{ProtoMatDir}/{stale}.mat");
             assets.FirePrefab = SaveVfx(true, $"{PrefabDir}/Flame.prefab");
             assets.SmokePrefab = SaveVfx(false, $"{PrefabDir}/Smoke.prefab");
             assets.Materials = AssetDatabase.LoadAssetAtPath<MaterialLibrary>(MaterialLibraryBuilder.LibraryAsset) ?? MaterialLibraryBuilder.Build();
@@ -124,10 +127,21 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
         }
 
+        private const string VfxDir = "Assets/_Fire3D/Art/VFX";
+
+        private static VfxTextures LoadVfxTextures() => new()
+        {
+            Flame = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/FlameFlipbook.png"),
+            Smoke = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/SmokeFlipbook.png"),
+            Glow = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/SoftGlow.png"),
+            Haze = AssetDatabase.LoadAssetAtPath<Texture2D>($"{VfxDir}/HazeNoise.png"),
+            HazeShader = AssetDatabase.LoadAssetAtPath<Shader>($"{VfxDir}/HeatHaze.shader"),
+        };
+
         private static ParticleSystem SaveVfx(bool fire, string path)
         {
             var root = new GameObject(fire ? "Flame" : "Smoke");
-            var ps = VfxFactory.Create(fire, root.transform);
+            var ps = VfxFactory.Create(fire, root.transform, LoadVfxTextures());
             ps.transform.SetParent(null);
             Object.DestroyImmediate(root);
             var go = ps.gameObject;

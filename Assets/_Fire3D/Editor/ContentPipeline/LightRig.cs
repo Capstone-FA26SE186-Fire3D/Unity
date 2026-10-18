@@ -5,8 +5,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 {
     /// <summary>
     /// Generated building lighting shared by the dev scene and the build worker: ceiling lights + emissive panels
-    /// (normal set), red emergency lights in escape routes, green EXIT signs. Lights start realtime so unbaked
-    /// scenes still look right; the baker switches them to baked.
+    /// (normal set), red emergency lights in escape routes, green EXIT signs. Ceiling lights are rectangle area
+    /// lights (bake-only: an unbaked scene shows just the emissive panels), emergency and sign lights start
+    /// realtime and are switched to baked by the baker.
     /// </summary>
     public static class LightRig
     {
@@ -18,22 +19,25 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             for (var i = 0; i < nx; i++)
             for (var k = 0; k < nz; k++)
             {
-                var p = new Vector3(room.min.x + (i + 0.5f) * room.size.x / nx, ceilingY - 0.15f, room.min.z + (k + 0.5f) * room.size.z / nz);
+                var p = new Vector3(room.min.x + (i + 0.5f) * room.size.x / nx, ceilingY - 0.05f, room.min.z + (k + 0.5f) * room.size.z / nz);
+                // Rectangle area light = a real panel: wide soft penumbrae and gentle falloff once baked, instead of the
+                // hard hot spots and sharp shadow edges a point light leaves on walls and furniture.
                 var go = new GameObject($"{name}_Light_{i}_{k}");
                 go.transform.SetParent(parent, false);
-                go.transform.position = p;
+                go.transform.SetPositionAndRotation(p - Vector3.up * 0.03f, Quaternion.Euler(90f, 0f, 0f));
                 var l = go.AddComponent<Light>();
-                l.type = LightType.Point;
-                l.color = new Color(1f, 0.9f, 0.78f);
-                l.intensity = 1.4f;
-                l.range = Mathf.Max(5f, spacing * 1.25f);
+                l.type = LightType.Rectangle;
+                l.areaSize = new Vector2(Mathf.Min(1.8f, room.size.x / nx * 0.4f), Mathf.Min(1.8f, room.size.z / nz * 0.4f));
+                l.color = new Color(1f, 0.93f, 0.82f);
+                l.intensity = 5.5f;
+                l.range = Mathf.Max(6f, spacing * 1.6f);
                 l.shadows = LightShadows.Soft;
-                l.lightmapBakeType = LightmapBakeType.Realtime;
+                l.lightmapBakeType = LightmapBakeType.Baked;
                 go.AddComponent<LightGroupMember>().Group = LightGroup.Normal;
 
-                var panel = GrayboxMesh.Create($"{name}_Panel_{i}_{k}", parent, p + Vector3.up * 0.13f, new Vector3(0.6f, 0.02f, 0.6f),
-                    PrototypeFactory.Lit(Color.white, 0.2f, 0f, new Color(1f, 0.92f, 0.8f) * 2.2f), false);
-                panel.transform.position = p + Vector3.up * 0.13f;
+                var panel = GrayboxMesh.Create($"{name}_Panel_{i}_{k}", parent, p, new Vector3(l.areaSize.x * 0.9f, 0.02f, l.areaSize.y * 0.9f),
+                    PrototypeFactory.Lit(Color.white, 0.2f, 0f, new Color(1f, 0.92f, 0.8f) * 2.6f), false);
+                panel.transform.position = p;
                 panel.AddComponent<LightGroupMember>().Group = LightGroup.Normal;
             }
 

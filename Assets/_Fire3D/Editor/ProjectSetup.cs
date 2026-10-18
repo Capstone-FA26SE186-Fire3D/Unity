@@ -57,6 +57,7 @@ namespace Fire3D.Unity.Editor
             var so = new SerializedObject(urp);
             Set(so, "m_MSAA", 4);
             Set(so, "m_RenderScale", 1f);
+            Set(so, "m_RequireDepthTexture", true); // Soft particles: flames fade where they meet floors and walls.
             Set(so, "m_SoftShadowsSupported", true);
             Set(so, "m_SoftShadowQuality", 2);
             Set(so, "m_ShadowDistance", 25f);
