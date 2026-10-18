@@ -72,6 +72,8 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             {
                 var colliders = stair.Flight != null ? stair.Flight.GetComponentsInChildren<Collider>().Length : -1;
                 Debug.Log($"[Fire3D ifc] stair {stair.name} bounds {stair.WorldBounds} flight {(stair.Flight != null ? stair.Flight.name : "none")} colliders {colliders}");
+                foreach (var r in UnityEngine.Object.FindObjectsByType<Renderer>().Where(r => r.enabled && r.bounds.Intersects(stair.WorldBounds)))
+                    Debug.Log($"[Fire3D ifc] near stair: {r.name} ({r.GetType().Name}) parent {r.transform.parent?.name} mats [{string.Join(",", r.sharedMaterials.Select(m => m == null ? "null" : $"{m.name}/{m.shader.name}"))}] bounds {r.bounds}");
             }
 
             var outDir = Environment.GetEnvironmentVariable("FET3D_AUTOPLAY_OUT");

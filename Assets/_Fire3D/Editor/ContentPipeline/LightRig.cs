@@ -31,7 +31,13 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 var ceiling = ceilingAt(at);
                 if (ceiling == null)
                     continue;
-                var p = new Vector3(at.x, ceiling.Value - 0.05f, at.z);
+                // The whole panel must sit under the same ceiling: next to a stairwell or void it would stick out into it.
+                var half = new Vector2(Mathf.Min(1.8f, room.size.x / nx * 0.4f), Mathf.Min(1.8f, room.size.z / nz * 0.4f)) * 0.5f;
+                var c = ceiling.Value;
+                bool Under(float dx, float dz) => ceilingAt(at + new Vector3(dx, 0f, dz)) is { } y && Mathf.Abs(y - c) < 0.1f;
+                if (!Under(-half.x, -half.y) || !Under(half.x, -half.y) || !Under(-half.x, half.y) || !Under(half.x, half.y))
+                    continue;
+                var p = new Vector3(at.x, c - 0.05f, at.z);
                 // Rectangle area light = a real panel: wide soft penumbrae and gentle falloff once baked, instead of the
                 // hard hot spots and sharp shadow edges a point light leaves on walls and furniture.
                 var go = new GameObject($"{name}_Light_{i}_{k}");
