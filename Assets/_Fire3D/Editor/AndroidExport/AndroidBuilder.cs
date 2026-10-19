@@ -161,6 +161,9 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 xml = System.Text.RegularExpressions.Regex.Replace(xml,
                     @"\s*<intent-filter>(?:(?!</intent-filter>).)*android\.intent\.category\.LAUNCHER(?:(?!</intent-filter>).)*</intent-filter>", "",
                     System.Text.RegularExpressions.RegexOptions.Singleline);
+                // Application-level attributes belong to the host app; in a library they fail the manifest merge.
+                foreach (var attribute in new[] { "enableOnBackInvokedCallback", "appCategory", "extractNativeLibs" })
+                    xml = System.Text.RegularExpressions.Regex.Replace(xml, $@"(<application[^>]*?)\s+android:{attribute}=""[^""]*""", "$1");
                 File.WriteAllText(manifest, xml);
             }
         }
