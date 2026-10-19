@@ -72,14 +72,25 @@ namespace Fire3D.Unity.Editor.AndroidExport
             var output = Arg("-fet3dOut", "Builds/AndroidLibrary");
             Prepare();
             EditorUserBuildSettings.exportAsGoogleAndroidProject = true;
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            // The Mobile host (UnityHostActivity) extends UnityPlayerActivity, which only exists with the Activity entry point.
+            var entry = PlayerSettings.Android.applicationEntry;
+            PlayerSettings.Android.applicationEntry = AndroidApplicationEntry.Activity;
+            BuildReport report;
+            try
             {
-                scenes = new[] { Development.DevelopmentSceneBuilder.BootstrapPath },
-                locationPathName = output,
-                target = BuildTarget.Android,
-                options = BuildOptions.None,
-            });
-            EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+                report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = new[] { Development.DevelopmentSceneBuilder.BootstrapPath },
+                    locationPathName = output,
+                    target = BuildTarget.Android,
+                    options = BuildOptions.None,
+                });
+            }
+            finally
+            {
+                PlayerSettings.Android.applicationEntry = entry;
+                EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+            }
             if (report.summary.result == BuildResult.Succeeded)
                 PackageUnityLibrary(output);
             Finish(report, output);
@@ -98,6 +109,7 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 Debug.LogError($"[Fire3D build] {module} has no build.gradle; nothing packaged.");
                 return null;
             }
+            MakeSelfContained(exportRoot, module);
             var version = $"{Application.version}-{DateTime.UtcNow:yyyyMMddHHmm}";
             var zip = Path.GetFullPath(Path.Combine(exportRoot, "..", $"fet3d-unityLibrary-{version}.zip"));
             if (File.Exists(zip))
@@ -110,6 +122,42 @@ namespace Fire3D.Unity.Editor.AndroidExport
             File.WriteAllText(zip + ".json", new Newtonsoft.Json.Linq.JObject { ["version"] = version, ["sha256"] = sha, ["file"] = Path.GetFileName(zip) }.ToString());
             Debug.Log($"[Fire3D build] unityLibrary {version} → {zip} (sha256 {sha})");
             return zip;
+        }
+
+        /// <summary>
+        /// The Mobile app embeds only the <c>unityLibrary</c> folder, so it must build on its own inside another Gradle project:
+        /// the <c>shared/*.gradle</c> scripts move into the module, the export's <c>unity*</c> Gradle properties become module
+        /// properties, and the Unity activity loses its LAUNCHER intent filter (otherwise the phone shows a second app icon).
+        /// </summary>
+        private static void MakeSelfContained(string exportRoot, string module)
+        {
+            var shared = Path.Combine(exportRoot, "shared");
+            if (Directory.Exists(shared))
+            {
+                var target = Path.Combine(module, "shared");
+                Directory.CreateDirectory(target);
+                foreach (var file in Directory.GetFiles(shared))
+                    File.Copy(file, Path.Combine(target, Path.GetFileName(file)), true);
+                var gradle = Path.Combine(module, "build.gradle");
+                File.WriteAllText(gradle, File.ReadAllText(gradle).Replace("'../shared/", "'shared/"));
+            }
+
+            var rootProperties = Path.Combine(exportRoot, "gradle.properties");
+            if (File.Exists(rootProperties))
+            {
+                var unityLines = File.ReadAllLines(rootProperties).Where(l => l.StartsWith("unity", StringComparison.Ordinal)).ToArray();
+                File.WriteAllLines(Path.Combine(module, "gradle.properties"), unityLines);
+            }
+
+            var manifest = Path.Combine(module, "src", "main", "AndroidManifest.xml");
+            if (File.Exists(manifest))
+            {
+                var xml = File.ReadAllText(manifest);
+                xml = System.Text.RegularExpressions.Regex.Replace(xml,
+                    @"\s*<intent-filter>(?:(?!</intent-filter>).)*android\.intent\.category\.LAUNCHER(?:(?!</intent-filter>).)*</intent-filter>", "",
+                    System.Text.RegularExpressions.RegexOptions.Singleline);
+                File.WriteAllText(manifest, xml);
+            }
         }
 
         private static void Prepare()
