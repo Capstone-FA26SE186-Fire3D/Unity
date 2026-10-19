@@ -23,6 +23,21 @@ namespace Fire3D.Unity.Content
                 _scenarios.Add(data);
         }
 
+        /// <summary>
+        /// Forgets a scenario whose bundle is being unloaded. When the last one goes, the global lightmaps and probes are
+        /// cleared too: they point at textures that die with the bundle and must not leak into the next package.
+        /// </summary>
+        public void Unregister(LightingScenarioData data)
+        {
+            if (data == null || !_scenarios.Remove(data) || _scenarios.Count > 0)
+                return;
+            LightmapSettings.lightmaps = System.Array.Empty<LightmapData>();
+            LightmapSettings.lightProbes = null;
+            Active = null;
+        }
+
+        public int Count => _scenarios.Count;
+
         public bool Has(string scenario) => _scenarios.Exists(s => s.Scenario == scenario);
 
         public void Apply(string scenario)

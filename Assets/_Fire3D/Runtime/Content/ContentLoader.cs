@@ -9,7 +9,10 @@ using UnityEngine.SceneManagement;
 
 namespace Fire3D.Unity.Content
 {
-    /// <summary>Loaded package: parsed documents and the floor scenes now in memory.</summary>
+    /// <summary>
+    /// Loaded package: parsed documents and everything the launch put in memory. Filled while loading, so a launch that
+    /// fails or is cancelled halfway can still release exactly what it took.
+    /// </summary>
     public sealed class LoadedContent
     {
         public ContentManifest Manifest;
@@ -17,26 +20,52 @@ namespace Fire3D.Unity.Content
         public ScenarioState Scenario;
         public readonly List<AssetBundle> Bundles = new();
         public readonly List<Scene> Scenes = new();
+        public readonly List<LightingScenarioData> Lighting = new();
     }
 
     /// <summary>
     /// Loads a package produced by the Unity build worker: verifies file hashes against the manifest (Mobile has
     /// verified the download already; this guards against local tampering or corruption), loads the shared
     /// material library bundle shipped in StreamingAssets, then each floor scene bundle additively, and registers
-    /// the baked lighting scenarios.
+    /// the baked lighting scenarios. On failure or cancellation it releases what this launch loaded before reporting,
+    /// so the next launch starts clean; the shared material library stays loaded for the app's lifetime.
     /// </summary>
     public static class ContentLoader
     {
         public const string MaterialLibraryBundle = "fet3d-materials";
+        public const string Cancelled = "LAUNCH_CANCELLED";
 
         private static AssetBundle _library;
 
-        public static IEnumerator Load(string manifestPath, Action<LoadedContent> done, Action<string, string> fail)
+        /// <param name="content">Receives each loaded piece as soon as Unity hands it over.</param>
+        /// <param name="cancelled">Polled between steps. A Unity load that is already running cannot be stopped, so it
+        /// finishes first and is then released.</param>
+        public static IEnumerator Load(string manifestPath, LoadedContent content, Action<string, string> fail, Func<bool> cancelled = null)
         {
-            LoadedContent content;
+            string errorCode = null, errorMessage = null;
+            yield return LoadSteps(manifestPath, content, cancelled ?? (() => false), (code, message) =>
+            {
+                errorCode = code;
+                errorMessage = message;
+            });
+            if (errorCode == null)
+                yield break;
+
+            yield return Unload(content);
+            fail(errorCode, errorMessage);
+        }
+
+        private static IEnumerator LoadSteps(string manifestPath, LoadedContent content, Func<bool> cancelled, Action<string, string> fail)
+        {
+            if (cancelled())
+            {
+                fail(Cancelled, "Launch cancelled before the package was read.");
+                yield break;
+            }
+
             try
             {
-                content = new LoadedContent { Manifest = ContractJson.ReadManifest(File.ReadAllText(manifestPath)) };
+                content.Manifest = ContractJson.ReadManifest(File.ReadAllText(manifestPath));
             }
             catch (Exception ex)
             {
@@ -71,6 +100,11 @@ namespace Fire3D.Unity.Content
                 }
 
                 yield return null;
+                if (cancelled())
+                {
+                    fail(Cancelled, "Launch cancelled while verifying the package.");
+                    yield break;
+                }
             }
 
             try
@@ -96,11 +130,15 @@ namespace Fire3D.Unity.Content
                 }
             }
 
-            var switcher = UnityEngine.Object.FindAnyObjectByType<LightingScenarioSwitcher>();
-            if (switcher == null)
-                switcher = new GameObject("LightingScenarios").AddComponent<LightingScenarioSwitcher>();
+            var switcher = Switcher(true);
             foreach (var floor in manifest.Floors)
             {
+                if (cancelled())
+                {
+                    fail(Cancelled, "Launch cancelled while loading floors.");
+                    yield break;
+                }
+
                 var request = AssetBundle.LoadFromFileAsync(Path.Combine(root, floor.Bundle));
                 yield return request;
                 var bundle = request.assetBundle;
@@ -119,35 +157,91 @@ namespace Fire3D.Unity.Content
                     {
                         content.Bundles.Add(lightingRequest.assetBundle);
                         foreach (var data in lightingRequest.assetBundle.LoadAllAssets<LightingScenarioData>())
+                        {
                             switcher.Register(data);
+                            content.Lighting.Add(data);
+                        }
                     }
+                }
+
+                if (cancelled())
+                {
+                    fail(Cancelled, "Launch cancelled while loading floors.");
+                    yield break;
                 }
 
                 var sceneName = floor.Scene;
                 if (string.IsNullOrEmpty(sceneName) && bundle.isStreamedSceneAssetBundle && bundle.GetAllScenePaths().Length > 0)
                     sceneName = Path.GetFileNameWithoutExtension(bundle.GetAllScenePaths()[0]);
-                var load = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                AsyncOperation load = null;
+                if (!string.IsNullOrEmpty(sceneName))
+                {
+                    try
+                    {
+                        load = SceneManager.LoadSceneAsync(sceneName, LoadSceneMode.Additive);
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogException(ex);
+                    }
+                }
+
+                if (load == null)
+                {
+                    fail("SCENE_LOAD_FAILED", $"{floor.Bundle}: scene '{sceneName}' not found in the bundle.");
+                    yield break;
+                }
+
                 yield return load;
-                content.Scenes.Add(SceneManager.GetSceneByName(sceneName));
+                var scene = SceneManager.GetSceneByName(sceneName);
+                if (!scene.IsValid() || !scene.isLoaded)
+                {
+                    fail("SCENE_LOAD_FAILED", $"{floor.Bundle}: scene '{sceneName}' did not load.");
+                    yield break;
+                }
+
+                content.Scenes.Add(scene);
             }
 
-            done(content);
+            if (cancelled())
+                fail(Cancelled, "Launch cancelled after the package loaded.");
         }
 
+        /// <summary>Releases what one launch loaded: its scenes, bundles and lighting registrations. Safe to call twice.</summary>
         public static IEnumerator Unload(LoadedContent content)
         {
             if (content == null)
                 yield break;
-            foreach (var scene in content.Scenes)
+            var switcher = Switcher(false);
+            if (switcher != null)
             {
-                if (scene.isLoaded)
+                foreach (var data in content.Lighting)
+                    switcher.Unregister(data);
+            }
+
+            content.Lighting.Clear();
+            foreach (var scene in content.Scenes.ToArray())
+            {
+                if (scene.IsValid() && scene.isLoaded)
                     yield return SceneManager.UnloadSceneAsync(scene);
             }
 
-            foreach (var b in content.Bundles)
-                b.Unload(true);
-            content.Bundles.Clear();
             content.Scenes.Clear();
+            foreach (var b in content.Bundles)
+            {
+                if (b != null)
+                    b.Unload(true);
+            }
+
+            content.Bundles.Clear();
+        }
+
+        private static LightingScenarioSwitcher Switcher(bool create)
+        {
+            var switcher = UnityEngine.Object.FindAnyObjectByType<LightingScenarioSwitcher>();
+            if (switcher == null && create)
+                switcher = new GameObject("LightingScenarios").AddComponent<LightingScenarioSwitcher>();
+            return switcher;
         }
 
         public static string Sha256(string path)

@@ -29,6 +29,10 @@ Runtime đã chạy được trong Editor: mô phỏng lửa/khói/nhiệt và N
 
 **Bridge Mobile:** Unity nhận `UnitySendMessage("Fire3DBridge", "Launch", json)` (`LaunchRequest`, protocol 1), có thêm `Pause` và `Abort`. Unity gửi `Ready`, `Launched`, `Events` (lô ≤ 500), `Completed`, `Error`, `Exited` qua `com.fet3d.unity.Fire3DUnityBridge.onUnityMessage(String)`.
 
+**Vòng đời launch (runtime 2.0.1):** `Fire3DApp` đi qua `Idle → Loading → Running → Unloading` và chỉ nhận `Launch` khi `Idle` (ngược lại `SESSION_BUSY`). Tải package lỗi ở bất kỳ bước nào (bundle, scene, dựng world) thì giải phóng mọi scene, bundle và đăng ký lighting của lượt đó (giữ thư viện vật liệu dùng chung), rồi gửi `Error {code}` kèm `sessionId` và `Ready`. `Abort` khi đang tải hủy lượt mở: `Error LAUNCH_CANCELLED`, không có `Launched`; khi đang chơi kết thúc `Abandoned` (`Completed`, màn kết quả); `Abort` lần nữa ở màn kết quả đóng phiên (`Exited`, `Ready`). Test: `LaunchLifecycleTests` (cần gói build cho Editor, ví dụ từ `Tools/PackageWorker/Test/Run-LocalTest.ps1`).
+
+**Runtime catalog:** phiên bản app ở `RuntimeCatalog.RuntimeVersion` (2.0.1), gói do bản này build chỉ yêu cầu `MinPackageRuntimeVersion` (2.0.0). Payload đăng ký, kiểm tra và quy trình bật/tắt: [Tools/RuntimeCatalog/README.md](Tools/RuntimeCatalog/README.md).
+
 ## Cấu trúc
 
 ```text
