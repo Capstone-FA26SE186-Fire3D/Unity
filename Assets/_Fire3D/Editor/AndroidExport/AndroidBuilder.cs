@@ -164,11 +164,31 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 xml = System.Text.RegularExpressions.Regex.Replace(xml,
                     @"\s*<intent-filter>(?:(?!</intent-filter>).)*android\.intent\.category\.LAUNCHER(?:(?!</intent-filter>).)*</intent-filter>", "",
                     System.Text.RegularExpressions.RegexOptions.Singleline);
-                // Application-level attributes belong to the host app; in a library they fail the manifest merge.
-                foreach (var attribute in new[] { "enableOnBackInvokedCallback", "appCategory", "extractNativeLibs" })
-                    xml = System.Text.RegularExpressions.Regex.Replace(xml, $@"(<application[^>]*?)\s+android:{attribute}=""[^""]*""", "$1");
                 File.WriteAllText(manifest, xml);
+                StripApplicationAttributes(manifest);
             }
+        }
+
+        /// <summary>
+        /// Application-level attributes belong to the host app; in a library they fail the manifest merge
+        /// (enableOnBackInvokedCallback true vs the host's false). Edited as XML: a regex pass left them in place in the Editor.
+        /// </summary>
+        public static void StripApplicationAttributes(string manifest)
+        {
+            const string androidNs = "http://schemas.android.com/apk/res/android";
+            var doc = new System.Xml.XmlDocument { PreserveWhitespace = true };
+            doc.Load(manifest);
+            if (doc.DocumentElement?.SelectSingleNode("application") is not System.Xml.XmlElement application)
+            {
+                Debug.LogError($"[Fire3D build] {manifest} has no <application>; attributes not stripped.");
+                return;
+            }
+
+            foreach (var attribute in new[] { "enableOnBackInvokedCallback", "appCategory", "extractNativeLibs" })
+                application.RemoveAttribute(attribute, androidNs);
+            doc.Save(manifest);
+            var left = application.Attributes.Cast<System.Xml.XmlAttribute>().Where(a => a.NamespaceURI == androidNs).Select(a => a.LocalName);
+            Debug.Log($"[Fire3D build] library manifest <application> android attributes: [{string.Join(", ", left)}]");
         }
 
         private static void Prepare()
