@@ -88,7 +88,8 @@ Quản lý: `Start-ScheduledTask`/`Stop-ScheduledTask -TaskName 'FET3D Unity Pac
 - Renew trả `409 ATTEMPT_STALE` → dừng Unity, xóa output, **không** gọi fail (job thuộc attempt khác).
 - Upload: `upload-urls` cho mọi file + `manifest.json`; PUT từng file (3 lần thử) với đúng header `x-amz-checksum-sha256`,
   `x-amz-sdk-checksum-algorithm`. Outputs: `manifest` (`schemaVersion fet3d.package/1`, metadata = manifest) rồi `unity_package`
-  (metadata: buildTarget, protocolVersion, manifestSchemaVersion, minRuntimeVersion, requiredCapabilities + provenance). Complete với
+  (metadata = **đúng manifest đó**: gate tạo/phát hành release của BE so hai metadata phải giống hệt, thêm provenance là
+  `PACKAGE_METADATA_MISMATCH`). Complete với
   `outputHash` của lần outputs cuối; `409 PACKAGE_STORAGE_MISMATCH` → upload lại một lần; `5xx` → thử lại tối đa 6 lần.
 - Log che query string của mọi URL ký sẵn và che khóa worker.
 
