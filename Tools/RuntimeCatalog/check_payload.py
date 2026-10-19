@@ -1,6 +1,6 @@
 """Checks a runtime catalog payload against this Unity checkout before it is registered.
 
-Usage (from the Unity repo root):  python -I Tools/RuntimeCatalog/check_payload.py Tools/RuntimeCatalog/runtime-2.0.1.json
+Usage (from the Unity repo root):  python -I Tools/RuntimeCatalog/check_payload.py Tools/RuntimeCatalog/runtime-2.0.2.json
 
 Fails when the payload version differs from RuntimeCatalog.RuntimeVersion, when the capability set differs from
 Capabilities in Runtime/Contracts, or when a contract parameter, event type, event payload field or action id does not
@@ -64,4 +64,4 @@ def main(path: str) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "runtime-2.0.1.json")))
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "runtime-2.0.2.json")))

@@ -10,7 +10,7 @@ permissions. Registering is a PlatformAdmin API call, deliberately not part of a
 - `RuntimeCatalog.RuntimeVersion` (Unity) = `APP_RUNTIME_VERSION` (Mobile `src/features/training/runtime-version.ts`) =
   the catalog `runtimeVersion`. Unity repeats it in `Ready`; Mobile reports a mismatch.
 - Bump the **patch** for fixes that keep protocol `"1"`, manifest schema `"1"` and the capability set (2.0.1 = launch
-  lifecycle fixes). New capabilities or contract changes need a new minor/major and a new payload.
+  lifecycle fixes, 2.0.2 = world-build cleanup). New capabilities or contract changes need a new minor/major and a new payload.
 - `RuntimeCatalog.MinPackageRuntimeVersion` is the oldest runtime that can play packages this build produces. Raise it only
   when packages depend on something older runtimes lack. Compatibility rule: same major, app not older than the package's
   `minRuntimeVersion`, same protocol/schema, all required capabilities offered. App and packages need not match exactly.
@@ -41,4 +41,5 @@ playtest and session starts that target it but never re-pins existing packages o
 | File | Version | Notes |
 | --- | --- | --- |
 | BE `contracts/editor/v1/fixtures/runtime-catalog.batch1.json` | 2.0.0 | Batch 1 interaction catalog (drop `_comment` before POST). |
-| `runtime-2.0.1.json` | 2.0.1 | Same protocol, schema, capabilities and contracts as 2.0.0; registered inactive. |
+| `runtime-2.0.1.json` | 2.0.1 | Same protocol, schema, capabilities and contracts as 2.0.0; registered inactive, never activated. |
+| `runtime-2.0.2.json` | 2.0.2 | Same as 2.0.1; world-build failures release everything before Error and Ready. Register inactive, activate after the phone test. |

@@ -150,13 +150,10 @@ namespace Fire3D.Unity.Bootstrap
                 yield break;
             }
 
-            if (StartSession(launch, content.Scenario, content.Building) == null)
+            if (TryStartSession(launch, content.Scenario, content.Building, false, out var buildError) == null)
             {
-                // StartSession already reported WORLD_BUILD_FAILED and removed the half-built world.
-                _state = AppState.Unloading;
-                yield return ReleaseContent();
-                _state = AppState.Idle;
-                SendReady();
+                // The half-built world is already gone; release the package, then report, then Ready.
+                yield return FailLaunch(launch, "WORLD_BUILD_FAILED", buildError);
             }
         }
 
@@ -181,6 +178,25 @@ namespace Fire3D.Unity.Bootstrap
         /// <summary>Starts a session on geometry that is already loaded (package scenes or a dev scene).</summary>
         public TrainingSession StartSession(LaunchRequest launch, ScenarioState scenario, BuildingMetadata building, bool autoStart = false)
         {
+            var session = TryStartSession(launch, scenario, building, autoStart, out var error);
+            if (session == null)
+            {
+                // No package to release on this path (dev scene geometry), so report right away.
+                _bridge.Send(BridgeMessages.Failure(launch.SessionId, "WORLD_BUILD_FAILED", error));
+            }
+
+            return session;
+        }
+
+        /// <summary>
+        /// Builds the world and starts the session. On failure everything it created is released (WorldBuilder releases a
+        /// half-built world itself; once built, the world is released here, and the session's own OnDestroy disposal is
+        /// idempotent) and the state is back to Idle; the caller reports the error.
+        /// </summary>
+        private TrainingSession TryStartSession(LaunchRequest launch, ScenarioState scenario, BuildingMetadata building, bool autoStart,
+            out string error)
+        {
+            error = null;
             BuiltWorld world = null;
             try
             {
@@ -197,11 +213,10 @@ namespace Fire3D.Unity.Bootstrap
             catch (Exception ex)
             {
                 Debug.LogException(ex);
-                // Begin may have thrown before the session took ownership of the simulation.
                 DestroySessionObjects(world);
-                world?.Simulation?.Dispose();
+                WorldBuilder.Release(world);
                 _state = AppState.Idle;
-                _bridge.Send(BridgeMessages.Failure(launch.SessionId, "WORLD_BUILD_FAILED", ex.Message));
+                error = ex.Message;
                 return null;
             }
         }
@@ -214,6 +229,8 @@ namespace Fire3D.Unity.Bootstrap
                 Destroy(_player);
             if (world?.Root != null)
                 Destroy(world.Root.gameObject);
+            if (world != null)
+                world.Root = null;
             // The session disposes the simulation in OnDestroy (end of frame), after its last Update.
             _session = null;
             _player = null;
