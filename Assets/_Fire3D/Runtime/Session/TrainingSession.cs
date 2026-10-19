@@ -346,6 +346,13 @@ namespace Fire3D.Unity.Session
             }
         }
 
+        /// <summary>Back on the result screen: same as its exit button. Ignored before the session has ended.</summary>
+        public void Close()
+        {
+            if (Phase == SessionPhase.Ended)
+                Exit();
+        }
+
         private void Exit()
         {
             _bridge?.Send(BridgeMessages.Make(BridgeMessages.Exited, _launch.SessionId));
