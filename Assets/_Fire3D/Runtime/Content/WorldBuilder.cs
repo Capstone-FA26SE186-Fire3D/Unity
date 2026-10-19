@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Fire3D.Contracts;
@@ -5,6 +6,7 @@ using Fire3D.Simulation;
 using Fire3D.Unity.Gameplay.Interactions;
 using Unity.Mathematics;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace Fire3D.Unity.Content
 {
@@ -44,9 +46,47 @@ namespace Fire3D.Unity.Content
             _mode = mode;
         }
 
+        /// <summary>
+        /// Test seam: called with "start", "root" and "simulation" as Build passes each point, so a test can make Build throw
+        /// exactly there. Null in production.
+        /// </summary>
+        public static Action<string> FaultForTests;
+
+        /// <summary>
+        /// Builds the world. If anything throws, the half-built world (root object and simulation) is released here before
+        /// the exception propagates, so the caller never receives or leaks a partial world.
+        /// </summary>
         public BuiltWorld Build()
         {
-            var world = new BuiltWorld { Root = new GameObject("ScenarioObjects").transform };
+            BuiltWorld world = null;
+            try
+            {
+                FaultForTests?.Invoke("start");
+                world = new BuiltWorld { Root = new GameObject("ScenarioObjects").transform };
+                FaultForTests?.Invoke("root");
+                return BuildInto(world);
+            }
+            catch
+            {
+                Release(world);
+                throw;
+            }
+        }
+
+        /// <summary>Destroys the root and disposes the simulation of a world that was not handed to a session.</summary>
+        public static void Release(BuiltWorld world)
+        {
+            if (world == null)
+                return;
+            if (world.Root != null)
+                Object.Destroy(world.Root.gameObject);
+            world.Root = null;
+            world.Simulation?.Dispose();
+            world.Simulation = null;
+        }
+
+        private BuiltWorld BuildInto(BuiltWorld world)
+        {
             CollectFloors();
             _elements = Object.FindObjectsByType<IfcElement>(FindObjectsSortMode.None)
                 .Where(e => !string.IsNullOrEmpty(e.GlobalId))
@@ -74,6 +114,7 @@ namespace Fire3D.Unity.Content
             var layout = GridRasterizer.LayoutFor(bounds, _floorElevations);
             var seed = (uint)((_scenario.RandomSeed ?? 1L) & 0xffffffff);
             world.Simulation = new FireSimulation(layout, seed == 0 ? 1u : seed);
+            FaultForTests?.Invoke("simulation");
             var grid = world.Simulation.Grid;
             Physics.SyncTransforms();
             GridRasterizer.Rasterize(grid);

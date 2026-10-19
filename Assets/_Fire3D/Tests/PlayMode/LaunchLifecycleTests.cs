@@ -62,6 +62,7 @@ namespace Fire3D.Unity.Tests.PlayModeTests
         [UnityTearDown]
         public IEnumerator TearDown()
         {
+            WorldBuilder.FaultForTests = null;
             if (_app != null)
             {
                 _app.WorldBuilt = null;
@@ -122,6 +123,32 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             Assert.IsNull(GameObject.Find("ScenarioObjects"), "the half-built world was removed");
 
             _app.WorldBuilt = null;
+            yield return LaunchPlaysAndExits(_manifest);
+        }
+
+        /// <summary>
+        /// Build throws at each of its own points (before anything exists, after the root object, after the simulation):
+        /// the half-built world is released, the package unloaded, the error reported and Ready sent, and the next launch plays.
+        /// </summary>
+        [UnityTest, Timeout(900000)]
+        public IEnumerator WorldBuildFailureInsideBuildLeavesNothing()
+        {
+            foreach (var point in new[] { "start", "root", "simulation" })
+            {
+                var at = point;
+                WorldBuilder.FaultForTests = p =>
+                {
+                    if (p == at)
+                        throw new InvalidOperationException("simulated build failure at " + at);
+                };
+                LogAssert.Expect(LogType.Exception, new System.Text.RegularExpressions.Regex("simulated build failure at " + at));
+                var sessionId = Launch(_manifest);
+                yield return WaitIdle(180f);
+                AssertFailedCleanly(sessionId, "WORLD_BUILD_FAILED", _manifest);
+                Assert.IsNull(GameObject.Find("ScenarioObjects"), $"no half-built world after a failure at '{at}'");
+            }
+
+            WorldBuilder.FaultForTests = null;
             yield return LaunchPlaysAndExits(_manifest);
         }
 

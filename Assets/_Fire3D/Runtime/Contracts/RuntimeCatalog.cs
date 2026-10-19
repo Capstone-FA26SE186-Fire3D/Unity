@@ -81,7 +81,7 @@ namespace Fire3D.Contracts
         /// protocol, manifest schema and capability set; register each released version through
         /// POST /api/admin/runtime-catalog (see Docs/runtime-catalog.md).
         /// </summary>
-        public const string RuntimeVersion = "2.0.1";
+        public const string RuntimeVersion = "2.0.2";
 
         /// <summary>
         /// Oldest runtime able to play the packages this build produces. Raise it only when packages start to depend on
