@@ -90,6 +90,14 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             Assert.AreEqual(SessionPhase.Ended, session.Phase);
 
             UnityEngine.Object.Destroy(pilot.gameObject);
+
+            // Release the package (unload its AssetBundles) before dropping the app, or the next test that loads the
+            // same package hits "another AssetBundle with the same files is already loaded". A failed run above throws
+            // before here and leaves the app for the next test's SetUp to release; a passing run must clean up itself.
+            app.Abort(null);
+            var idleBy = Time.realtimeSinceStartup + 60f;
+            while (app.State != Fire3DApp.AppState.Idle && Time.realtimeSinceStartup < idleBy)
+                yield return null;
             UnityEngine.Object.Destroy(app.gameObject);
             yield return null;
         }

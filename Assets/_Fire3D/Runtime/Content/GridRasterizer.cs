@@ -79,7 +79,7 @@ namespace Fire3D.Unity.Content
             foreach (var stair in Object.FindObjectsByType<StairVolume>(FindObjectsSortMode.None))
                 MarkBounds(grid, stair.WorldBounds, CellFlags.Walkable | CellFlags.Stair, replace: true, allFloorsInside: true);
             foreach (var exit in ExitZone.All)
-                MarkBounds(grid, exit.WorldBounds, exit.Blocked ? CellFlags.Walkable : CellFlags.Walkable | CellFlags.Exit | CellFlags.Outside, replace: true);
+                MarkExit(grid, exit.WorldBounds, exit.Blocked ? CellFlags.Walkable : CellFlags.Walkable | CellFlags.Exit | CellFlags.Outside);
         }
 
         public static List<int> CellsIn(GridLayout layout, Bounds bounds, bool allFloorsInside = false)
@@ -106,6 +106,23 @@ namespace Fire3D.Unity.Content
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// Marks an exit volume. An exit anchored to a door sits in the façade, so its box overlaps the solid wall on
+        /// either side of the opening; forcing those cells walkable would punch a phantom hole the pathfinder walks
+        /// into but the physical wall still blocks. So the wall stays solid here and only cells that are already
+        /// passable — the door opening and the floor inside — become exit cells, leaving the door the only way in.
+        /// </summary>
+        private static void MarkExit(HazardGrid grid, Bounds bounds, CellFlags flags)
+        {
+            foreach (var i in CellsIn(grid.Layout, bounds))
+            {
+                var existing = grid.GetFlags(i);
+                if ((existing & CellFlags.Wall) != 0 && (existing & CellFlags.Door) == 0)
+                    continue;
+                grid.SetFlags(i, flags | (existing & (CellFlags.Exit | CellFlags.Stair | CellFlags.Door)));
+            }
         }
 
         private static void MarkBounds(HazardGrid grid, Bounds bounds, CellFlags flags, bool replace, bool allFloorsInside = false)
