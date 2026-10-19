@@ -142,6 +142,11 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 File.WriteAllText(gradle, File.ReadAllText(gradle).Replace("'../shared/", "'shared/"));
             }
 
+            // The host's bridge module calls UnityPlayer/UnityPlayerActivity from unity-classes.jar: expose it to consumers.
+            var moduleGradle = Path.Combine(module, "build.gradle");
+            File.WriteAllText(moduleGradle, File.ReadAllText(moduleGradle)
+                .Replace("implementation fileTree(dir: 'libs', include: ['*.jar'])", "api fileTree(dir: 'libs', include: ['*.jar'])"));
+
             var rootProperties = Path.Combine(exportRoot, "gradle.properties");
             if (File.Exists(rootProperties))
             {
