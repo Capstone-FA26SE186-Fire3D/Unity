@@ -254,8 +254,14 @@ namespace Fire3D.Simulation
             return false;
         }
 
+        private bool _disposed;
+
+        /// <summary>Safe to call more than once: a failed launch and the session teardown may both release the same world.</summary>
         public void Dispose()
         {
+            if (_disposed)
+                return;
+            _disposed = true;
             if (World.IsCreated)
                 World.Dispose();
             Grid.Dispose();

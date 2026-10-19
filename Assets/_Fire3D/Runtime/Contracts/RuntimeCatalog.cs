@@ -76,7 +76,19 @@ namespace Fire3D.Contracts
 
     public static class RuntimeCatalog
     {
-        public const string RuntimeVersion = "2.0.0";
+        /// <summary>
+        /// Version of this app build (Ready, Launched, runtime catalog row). Bump the patch for fixes that keep the bridge
+        /// protocol, manifest schema and capability set; register each released version through
+        /// POST /api/admin/runtime-catalog (see Docs/runtime-catalog.md).
+        /// </summary>
+        public const string RuntimeVersion = "2.0.1";
+
+        /// <summary>
+        /// Oldest runtime able to play the packages this build produces. Raise it only when packages start to depend on
+        /// something older runtimes lack (new capability, protocol or manifest change), so lifecycle fixes do not force
+        /// every package onto the newest app.
+        /// </summary>
+        public const string MinPackageRuntimeVersion = "2.0.0";
 
         /// <summary>
         /// True when a package that needs <paramref name="minRuntimeVersion"/> can run on this app: same major version and

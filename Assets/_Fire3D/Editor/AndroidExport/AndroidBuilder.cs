@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using Fire3D.Contracts;
 using Fire3D.Unity.Content;
 using Fire3D.Unity.Editor.ContentPipeline;
 using UnityEditor;
@@ -70,6 +71,8 @@ namespace Fire3D.Unity.Editor.AndroidExport
         public static void ExportForMobile()
         {
             var output = Arg("-fet3dOut", "Builds/AndroidLibrary");
+            // The app version is the runtime version Mobile reports to BE (Mobile APP_RUNTIME_VERSION, runtime catalog row).
+            PlayerSettings.bundleVersion = RuntimeCatalog.RuntimeVersion;
             Prepare();
             EditorUserBuildSettings.exportAsGoogleAndroidProject = true;
             // The Mobile host (UnityHostActivity) extends UnityPlayerActivity, which only exists with the Activity entry point.
@@ -110,7 +113,7 @@ namespace Fire3D.Unity.Editor.AndroidExport
                 return null;
             }
             MakeSelfContained(exportRoot, module);
-            var version = $"{Application.version}-{DateTime.UtcNow:yyyyMMddHHmm}";
+            var version = $"{RuntimeCatalog.RuntimeVersion}-{DateTime.UtcNow:yyyyMMddHHmm}";
             var zip = Path.GetFullPath(Path.Combine(exportRoot, "..", $"fet3d-unityLibrary-{version}.zip"));
             if (File.Exists(zip))
                 File.Delete(zip);

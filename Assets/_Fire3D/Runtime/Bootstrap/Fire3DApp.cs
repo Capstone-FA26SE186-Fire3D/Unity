@@ -20,11 +20,21 @@ namespace Fire3D.Unity.Bootstrap
 
         [SerializeField] private RuntimeAssets assets;
 
+        /// <summary>Launch lifecycle. One launch at a time; Ready is announced only when back to Idle.</summary>
+        public enum AppState
+        {
+            Idle,
+            Loading,
+            Running,
+            Unloading,
+        }
+
         private readonly Fire3DBridge _bridge = new();
         private LoadedContent _content;
         private TrainingSession _session;
         private GameObject _player;
-        private bool _busy;
+        private AppState _state = AppState.Idle;
+        private bool _cancelRequested;
 
         public RuntimeAssets Assets
         {
@@ -33,6 +43,11 @@ namespace Fire3D.Unity.Bootstrap
         }
 
         public IFire3DBridge Bridge => _bridge;
+
+        public AppState State => _state;
+
+        /// <summary>Runs right after the world is built, before the player and session exist. Tests throw here to exercise WORLD_BUILD_FAILED.</summary>
+        public Action<BuiltWorld> WorldBuilt;
 
         private void Awake()
         {
@@ -58,9 +73,9 @@ namespace Fire3D.Unity.Bootstrap
         /// <summary>Called by Mobile through UnitySendMessage(ReceiverName, "Launch", json).</summary>
         public void Launch(string json)
         {
-            if (_busy)
+            if (_state != AppState.Idle)
             {
-                _bridge.Send(BridgeMessages.Failure(null, "SESSION_BUSY", "A session is already running."));
+                _bridge.Send(BridgeMessages.Failure(null, "SESSION_BUSY", $"The runtime is {_state}; wait for Ready."));
                 return;
             }
 
@@ -75,14 +90,30 @@ namespace Fire3D.Unity.Bootstrap
                 return;
             }
 
+            _state = AppState.Loading;
+            _cancelRequested = false;
             StartCoroutine(Run(launch));
         }
 
-        /// <summary>Mobile asks to stop (user left, app closing). The session ends as Abandoned.</summary>
+        /// <summary>
+        /// Mobile asks to stop (Back, user left, app closing). While the package is loading the launch is cancelled
+        /// (LAUNCH_CANCELLED, no Launched); once the session runs it ends as Abandoned (Completed, result screen); Back on
+        /// the result screen closes it like its exit button (Exited, then Ready).
+        /// </summary>
         public void Abort(string _)
         {
-            if (_session != null)
-                _session.End(EndReason.Abandoned);
+            switch (_state)
+            {
+                case AppState.Loading:
+                    _cancelRequested = true;
+                    break;
+                case AppState.Running when _session != null && _session.Phase == SessionPhase.Ended:
+                    _session.Close();
+                    break;
+                case AppState.Running when _session != null:
+                    _session.End(EndReason.Abandoned);
+                    break;
+            }
         }
 
         public void Pause(string _) => _session?.SetPaused(true);
@@ -92,56 +123,90 @@ namespace Fire3D.Unity.Bootstrap
 
         private IEnumerator Run(LaunchRequest launch)
         {
-            _busy = true;
+            var content = new LoadedContent();
+            _content = content;
             string errorCode = null, errorMessage = null;
-            yield return ContentLoader.Load(launch.ManifestPath, c => _content = c, (code, msg) =>
+            yield return ContentLoader.Load(launch.ManifestPath, content, (code, msg) =>
             {
                 errorCode = code;
                 errorMessage = msg;
-            });
+            }, () => _cancelRequested);
+
+            // Abort can arrive in the same frame the last load step finished.
+            if (errorCode == null && _cancelRequested)
+            {
+                errorCode = ContentLoader.Cancelled;
+                errorMessage = "Launch cancelled after the package loaded.";
+            }
+            else if (errorCode == null && content.Scenario.ModePolicy?.AllowedModes is { Count: > 0 } allowed && !allowed.Contains(launch.Mode))
+            {
+                errorCode = "MODE_NOT_ALLOWED";
+                errorMessage = launch.Mode;
+            }
+
             if (errorCode != null)
             {
-                _bridge.Send(BridgeMessages.Failure(launch.SessionId, errorCode, errorMessage));
-                _busy = false;
+                yield return FailLaunch(launch, errorCode, errorMessage);
                 yield break;
             }
 
-            if (_content.Scenario.ModePolicy?.AllowedModes is { Count: > 0 } allowed && !allowed.Contains(launch.Mode))
+            if (StartSession(launch, content.Scenario, content.Building) == null)
             {
-                _bridge.Send(BridgeMessages.Failure(launch.SessionId, "MODE_NOT_ALLOWED", launch.Mode));
-                yield return ContentLoader.Unload(_content);
-                _busy = false;
-                yield break;
+                // StartSession already reported WORLD_BUILD_FAILED and removed the half-built world.
+                _state = AppState.Unloading;
+                yield return ReleaseContent();
+                _state = AppState.Idle;
+                SendReady();
             }
+        }
 
-            StartSession(launch, _content.Scenario, _content.Building);
+        /// <summary>Releases everything the failed launch loaded, then reports the error and Ready so Mobile can retry.</summary>
+        private IEnumerator FailLaunch(LaunchRequest launch, string code, string message)
+        {
+            _state = AppState.Unloading;
+            yield return ReleaseContent();
+            _bridge.Send(BridgeMessages.Failure(launch.SessionId, code, message));
+            _state = AppState.Idle;
+            _cancelRequested = false;
+            SendReady();
+        }
+
+        private IEnumerator ReleaseContent()
+        {
+            var content = _content;
+            _content = null;
+            yield return ContentLoader.Unload(content);
         }
 
         /// <summary>Starts a session on geometry that is already loaded (package scenes or a dev scene).</summary>
         public TrainingSession StartSession(LaunchRequest launch, ScenarioState scenario, BuildingMetadata building, bool autoStart = false)
         {
-            _busy = true;
-            BuiltWorld world;
+            BuiltWorld world = null;
             try
             {
                 world = new WorldBuilder(assets, scenario, building, launch.Mode).Build();
+                WorldBuilt?.Invoke(world);
+                _player = PlayerRigFactory.Create(assets);
+                _session = new GameObject("TrainingSession").AddComponent<TrainingSession>();
+                var session = _session;
+                _session.Exited += () => StartCoroutine(Teardown(world));
+                _state = AppState.Running;
+                _session.Begin(launch, scenario, world, _bridge, assets, _player, autoStart);
+                return session;
             }
             catch (Exception ex)
             {
                 Debug.LogException(ex);
+                // Begin may have thrown before the session took ownership of the simulation.
+                DestroySessionObjects(world);
+                world?.Simulation?.Dispose();
+                _state = AppState.Idle;
                 _bridge.Send(BridgeMessages.Failure(launch.SessionId, "WORLD_BUILD_FAILED", ex.Message));
-                _busy = false;
                 return null;
             }
-
-            _player = PlayerRigFactory.Create(assets);
-            _session = new GameObject("TrainingSession").AddComponent<TrainingSession>();
-            _session.Exited += () => StartCoroutine(Teardown(world));
-            _session.Begin(launch, scenario, world, _bridge, assets, _player, autoStart);
-            return _session;
         }
 
-        private IEnumerator Teardown(BuiltWorld world)
+        private void DestroySessionObjects(BuiltWorld world)
         {
             if (_session != null)
                 Destroy(_session.gameObject);
@@ -149,10 +214,18 @@ namespace Fire3D.Unity.Bootstrap
                 Destroy(_player);
             if (world?.Root != null)
                 Destroy(world.Root.gameObject);
-            yield return ContentLoader.Unload(_content);
-            _content = null;
+            // The session disposes the simulation in OnDestroy (end of frame), after its last Update.
             _session = null;
-            _busy = false;
+            _player = null;
+        }
+
+        private IEnumerator Teardown(BuiltWorld world)
+        {
+            _state = AppState.Unloading;
+            DestroySessionObjects(world);
+            yield return ReleaseContent();
+            _state = AppState.Idle;
+            _cancelRequested = false;
             SendReady();
         }
     }

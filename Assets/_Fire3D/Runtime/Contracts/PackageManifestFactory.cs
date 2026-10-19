@@ -28,7 +28,7 @@ namespace Fire3D.Contracts
                 ProtocolVersion = LaunchRequest.CurrentProtocol,
                 ManifestSchema = ContentManifest.ManifestSchemaVersion,
                 RuntimeVersion = RuntimeCatalog.RuntimeVersion,
-                MinRuntimeVersion = RuntimeCatalog.RuntimeVersion,
+                MinRuntimeVersion = RuntimeCatalog.MinPackageRuntimeVersion,
                 RequiredCapabilities = RequiredCapabilities(scenario),
                 UnityVersion = unityVersion,
                 MaterialLibraryVersion = materialLibraryVersion,
