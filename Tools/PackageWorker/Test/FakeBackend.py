@@ -249,6 +249,9 @@ class Handler(BaseHTTPRequestHandler):
                 package = next((o for o in STATE.outputs if o["artifactType"] == "unity_package"), None)
                 if not manifest or not package or manifest["objectKey"] != package["objectKey"]:
                     return self.problem(422, "PACKAGE_MANIFEST_INVALID", "The two outputs do not name the same object.")
+                # The real release/publish gates refuse a package whose metadata differs from the manifest's.
+                if package["metadata"] != manifest["metadata"]:
+                    return self.problem(409, "PACKAGE_METADATA_MISMATCH", "unity_package metadata differs from the manifest metadata.")
                 mismatch = storage_mismatch(manifest)
                 if mismatch:
                     return self.problem(409, "PACKAGE_STORAGE_MISMATCH", mismatch)

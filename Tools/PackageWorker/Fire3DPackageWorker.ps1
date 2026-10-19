@@ -452,23 +452,9 @@ function Publish-Package([object]$claim, [string]$outputDir, [string]$WorkerKey)
     $packageOutput = $common.Clone()
     $packageOutput.artifactType = 'unity_package'
     $packageOutput.schemaVersion = [string](Get-Prop $manifest 'manifestSchemaVersion' '1')
-    $packageOutput.metadata = @{
-        buildTarget = [string]$manifest.buildTarget
-        protocolVersion = [string]$manifest.protocolVersion
-        manifestSchemaVersion = [string]$manifest.manifestSchemaVersion
-        minRuntimeVersion = [string]$manifest.minRuntimeVersion
-        requiredCapabilities = @(Get-Prop $manifest 'requiredCapabilities' @())
-        runtimeVersion = [string]$manifest.runtimeVersion
-        unityVersion = [string]$manifest.unityVersion
-        materialLibraryVersion = [string](Get-Prop $manifest 'materialLibraryVersion' '')
-        toolchainVersion = [string]$cfg.toolchainVersion
-        agentVersion = $script:AgentVersion
-        inputHash = [string](Get-Prop $claim 'inputHash' '')
-        geometryAttemptId = [string](Get-Prop $claim 'geometryAttemptId' '')
-        fileCount = $files.Count
-        totalSizeBytes = $total
-        manifestSha256 = $manifestSha
-    }
+    # Same document as the manifest output: the release and publish gates require the two artifacts' metadata to be identical
+    # (BE ReleaseAccess.sql / ReleasePublish.sql), so any extra provenance here makes every release fail PACKAGE_METADATA_MISMATCH.
+    $packageOutput.metadata = $manifest
     $r = Invoke-JobCall -Action 'outputs' -JobId $claim.jobId -Body ($attempt + @{ output = $packageOutput }) -WorkerKey $WorkerKey
     if (-not $r.Ok) { throw [JobFailed]::new("Registering the unity_package output failed (HTTP $($r.Status) $($r.Code)).") }
     $outputHash = [string](Get-Prop $r.Json 'outputHash' '')
