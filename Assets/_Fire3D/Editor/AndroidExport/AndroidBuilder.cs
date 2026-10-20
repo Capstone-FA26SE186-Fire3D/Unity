@@ -93,6 +93,9 @@ namespace Fire3D.Unity.Editor.AndroidExport
             {
                 PlayerSettings.Android.applicationEntry = entry;
                 EditorUserBuildSettings.exportAsGoogleAndroidProject = false;
+                // The build wrote the temporary Activity entry to ProjectSettings.asset; save the restored one so the
+                // export leaves no change behind.
+                AssetDatabase.SaveAssets();
             }
             if (report.summary.result == BuildResult.Succeeded)
                 PackageUnityLibrary(output);
