@@ -24,6 +24,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             ["floor.tile"] = 1.2f, ["floor.wood"] = 2f, ["floor.carpet"] = 1f, ["ceiling.tile"] = 1.2f,
             ["wall.plaster"] = 2f, ["wall.brick"] = 1.5f, ["wall.tile"] = 1f, ["concrete"] = 2f,
             ["wood"] = 1f, ["stone"] = 1.5f, ["metal.painted"] = 1f, ["metal.brushed"] = 0.5f,
+            ["floor.epoxy"] = 2f, ["floor.vinyl"] = 1f, ["floor.terrazzo"] = 1.2f, ["floor.rubber"] = 0.6f,
+            ["wall.tile.white"] = 0.6f, ["wall.paint"] = 2f, ["metal.stainless"] = 0.5f,
         };
 
         [MenuItem("Fire3D/Content/Build Material Library")]

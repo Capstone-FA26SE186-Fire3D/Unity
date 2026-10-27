@@ -17,6 +17,9 @@ namespace Fire3D.Unity.Presentation
         private int maxFires => FireQuality.MaxEmitters;
         private int maxSmoke => FireQuality.MaxSmoke;
         private int maxFireLights => FireQuality.MaxLights;
+
+        /// <summary>Flames within 2.5 m of a light that make it a large fire (louder roar instead of crackle).</summary>
+        [SerializeField] private int largeFireFlames = 4;
         [SerializeField] private float viewRadius = 22f;
         [SerializeField] private float refreshSeconds = 0.25f;
         [SerializeField] private Color clearFog = new(0.62f, 0.64f, 0.66f);
@@ -223,6 +226,8 @@ namespace Fire3D.Unity.Presentation
                 l.shadows = LightShadows.None;
                 l.renderMode = LightRenderMode.ForcePixel;
                 l.enabled = false;
+                // The crackle follows the light: one source per cluster of flames.
+                GameAudio.Loop(GameAudio.Sounds?.FireLoop, go, 0.8f, 16f);
                 _fireLights.Add(l);
                 _lightPhase.Add(UnityEngine.Random.value * 100f);
             }
@@ -248,6 +253,26 @@ namespace Fire3D.Unity.Presentation
             {
                 var on = k < _lightSource.Count;
                 _fireLights[k].enabled = on;
+                if (_fireLights[k].TryGetComponent<AudioSource>(out var crackle))
+                {
+                    // A cluster of many flames roars; a small fire crackles.
+                    var clip = on && ClusterSize(_lightSource[k]) >= largeFireFlames && GameAudio.Sounds?.FireLarge != null
+                        ? GameAudio.Sounds.FireLarge
+                        : GameAudio.Sounds?.FireLoop;
+                    if (on && clip != null && crackle.clip != clip)
+                    {
+                        crackle.clip = clip;
+                        crackle.time = UnityEngine.Random.Range(0f, clip.length * 0.9f);
+                        crackle.Play();
+                    }
+                    else if (crackle.isPlaying != on)
+                    {
+                        if (on)
+                            crackle.Play();
+                        else
+                            crackle.Stop();
+                    }
+                }
                 if (on)
                     _fireLights[k].transform.position = _fires[_lightSource[k]].transform.position + Vector3.up * 0.9f;
             }
@@ -263,6 +288,16 @@ namespace Fire3D.Unity.Presentation
                 _anyHaze = anyHaze;
                 FireQuality.RequestOpaqueTexture(anyHaze);
             }
+        }
+
+        private int ClusterSize(int source)
+        {
+            var p = _fires[source].transform.position;
+            var count = 0;
+            foreach (var f in _fires)
+                if (f.isEmitting && (f.transform.position - p).sqrMagnitude < 2.5f * 2.5f)
+                    count++;
+            return count;
         }
 
         private void FlickerLights()

@@ -14,25 +14,25 @@ MonoBehaviour:
   m_EditorClassIdentifier: Fire3D.Unity.Runtime::Fire3D.Unity.Content.RuntimeAssets
   Interactables:
   - Capability: alarm.call_point
-    Prefab: {fileID: 3200872470844605637, guid: fe863c56e1f10b343b1bf76a919b8809, type: 3}
+    Prefab: {fileID: 2737295060740059707, guid: e76ed792c34808b4cb30a7f1f6b72e4f, type: 3}
   - Capability: alarm.detector
-    Prefab: {fileID: 3262358332881692543, guid: c9f8db8fc27e83344b219be49d03abb1, type: 3}
+    Prefab: {fileID: 4656352562662020778, guid: 5c79777acc407114f9ca4ca0b1bcb544, type: 3}
   - Capability: extinguisher.portable
-    Prefab: {fileID: 8549444384947703746, guid: 0d57e1e8dcd3b4048a41ea40079d6556, type: 3}
+    Prefab: {fileID: 4623794903076792149, guid: af1206f4a3689124cb30ba881cead478, type: 3}
   - Capability: water.sink
-    Prefab: {fileID: 349661753029344890, guid: f9be219108f673241b09339555817e96, type: 3}
+    Prefab: {fileID: 1023374273194585917, guid: a9216d7d8e1e95e4d965bcae440913d1, type: 3}
   - Capability: water.bath
-    Prefab: {fileID: 6174723481715193843, guid: 25b1b3b62feff5645a7bc92719e079ef, type: 3}
+    Prefab: {fileID: 4518191698228433274, guid: 8fa8e6a193efab346bcd77b3781513e4, type: 3}
   - Capability: water.shower
-    Prefab: {fileID: 1787945900363554216, guid: 9a941c20deb0b654aa057c3bb832fe24, type: 3}
+    Prefab: {fileID: 2333297639019041009, guid: 73802a50c7344454b9b00468cfd99ee4, type: 3}
   - Capability: item.towel
-    Prefab: {fileID: 401465469324502829, guid: 317a78e756f379c48a485f081d88c330, type: 3}
+    Prefab: {fileID: 9116272682292706205, guid: bd18f39ab17f77840831912dc02375ef, type: 3}
   - Capability: transport.elevator
-    Prefab: {fileID: 2918475556519757767, guid: 36c7e46abd2898346988d18c7e613aac, type: 3}
+    Prefab: {fileID: 1275444886464482460, guid: 0fc81cc67e923fa4e908f147e5956ee6, type: 3}
   - Capability: bait.belongings
-    Prefab: {fileID: 7877220882927243034, guid: 35b9f43fbb242494f829e1a754236f6d, type: 3}
+    Prefab: {fileID: 3010299755326664758, guid: 62632d416ce657440b691e8352159aee, type: 3}
   - Capability: suppression.sprinkler
-    Prefab: {fileID: 7673010690039564176, guid: b335d0fcbd3cd144799132d3d4c7ed83, type: 3}
+    Prefab: {fileID: 1244243618030613953, guid: d6885f2ec3014b94e8dd90522c154d64, type: 3}
   PlayerPrefab: {fileID: 755447955702728051, guid: 7a63af5a77a4abe4fbf48c0d39ef4e1e, type: 3}
   NpcPrefab: {fileID: 3776986061081416772, guid: f7746847a153db1489a027c9faefd1d7, type: 3}
   NpcVariants:
@@ -45,4 +45,57 @@ MonoBehaviour:
   SprayPrefab: {fileID: 0}
   SprinklerPrefab: {fileID: 0}
   Materials: {fileID: 11400000, guid: 111609b751f7dbb4287d290b3adbe400, type: 2}
-  AlarmClip: {fileID: 0}
+  AlarmClip: {fileID: 8300000, guid: 9954feabf7545834d82a2a0cb2c51adc, type: 3}
+  Sounds:
+    FireLoop: {fileID: 8300000, guid: edc25a1bec1fbfe46833b35f4442505d, type: 3}
+    FireLarge: {fileID: 8300000, guid: a25602013e59f4b4e849536a0b3df213, type: 3}
+    RoomTone: {fileID: 8300000, guid: 2ebefbd7100de1e4eb422359162c29e8, type: 3}
+    Sparks: {fileID: 8300000, guid: 341b11fbd29f0f843ab3433627522c41, type: 3}
+    Panting:
+    - {fileID: 8300000, guid: 6d9d4760272430646be07962107fc99a, type: 3}
+    - {fileID: 8300000, guid: 4b6894d07a426df4ab897fb3ca52d027, type: 3}
+    DoorOpen: {fileID: 8300000, guid: 677e6bb242d556f4a98596b932b459c0, type: 3}
+    DoorClose: {fileID: 8300000, guid: 54c260d2f8c44d14399f98b0b5d5a1d0, type: 3}
+    DoorTouch: {fileID: 8300000, guid: 88bbdb51fbf7c2b4a9d621759db1fa12, type: 3}
+    CallPointPress: {fileID: 8300000, guid: 165e855549fa9e74897412ef8979251e, type: 3}
+    ExtinguisherPin: {fileID: 8300000, guid: 857e4a38dc244cb4899d84774fff1a7e, type: 3}
+    ExtinguisherSpray: {fileID: 8300000, guid: 593b4c4476c4aff40bb5541b00aa9128, type: 3}
+    SprinklerSpray: {fileID: 8300000, guid: e95ceec551ea34c438b6a39c0f721007, type: 3}
+    TapRunning: {fileID: 8300000, guid: eb0147b51d5039d479e730776026c511, type: 3}
+    Cough: {fileID: 8300000, guid: bac57666d77f3df4483ead7778b7ce1c, type: 3}
+    ElevatorDing: {fileID: 8300000, guid: c7954660cadcc80459531154d505b113, type: 3}
+    PowerCut: {fileID: 8300000, guid: e1614194885342243b2df1f2f274bb76, type: 3}
+    UiClick: {fileID: 8300000, guid: d9980e6ce02ee244e9509bece86b45f8, type: 3}
+    UiSuccess: {fileID: 8300000, guid: edce91921f3b2b44189d5d357eabca75, type: 3}
+    UiError: {fileID: 8300000, guid: 21c02d4085abd634aacea3035d8cf766, type: 3}
+    Footsteps:
+    - {fileID: 8300000, guid: 98edac77eef82db48a4344dec0e67245, type: 3}
+    - {fileID: 8300000, guid: 62fcdc1ea154dec43ab62e9d85bd1bf3, type: 3}
+    - {fileID: 8300000, guid: a8efa04337ce3ad4ebcf0f6da3d15448, type: 3}
+    - {fileID: 8300000, guid: cdd1ee5157763d845aa809081a816063, type: 3}
+    - {fileID: 8300000, guid: fec25b9944fe88440b0b1e5c7bfdfba6, type: 3}
+    Crawl:
+    - {fileID: 8300000, guid: 046130a080e5d064baa5d59151918bc9, type: 3}
+    - {fileID: 8300000, guid: 73a693621759c5547b67672419fb5669, type: 3}
+    - {fileID: 8300000, guid: 17fc0d73073a16746830d4f5f9729e58, type: 3}
+    DoorOpenWood:
+    - {fileID: 8300000, guid: af4d6d8ec9c0aad48a68638d5a6213b6, type: 3}
+    - {fileID: 8300000, guid: 61849f81333922449b03bc0e6e40c654, type: 3}
+    - {fileID: 8300000, guid: 82a1471232a97dc4c80ad326c2724193, type: 3}
+    - {fileID: 8300000, guid: 49acce60b4a18c1439ce3ad5f998fd8d, type: 3}
+    - {fileID: 8300000, guid: 120f0e94d64d883418dd4f5aece2af1e, type: 3}
+    - {fileID: 8300000, guid: 518fba77a48440445b579d484c0d2d36, type: 3}
+    - {fileID: 8300000, guid: c534d93f25a8e0649b6fef44b0fbb505, type: 3}
+    - {fileID: 8300000, guid: 5fbf4bdc195745a449aeff36d9ca4a6c, type: 3}
+    DoorCloseWood:
+    - {fileID: 8300000, guid: 4073423c93f12304a811f1e92b31ef47, type: 3}
+    - {fileID: 8300000, guid: 64326ad27b94fc842ab87621f8237713, type: 3}
+    - {fileID: 8300000, guid: 63266fec181961c419ae2f1b2d747429, type: 3}
+    - {fileID: 8300000, guid: 10f7a2dea2ed46744895d7b8f28c1e20, type: 3}
+    - {fileID: 8300000, guid: 4473259c90422df49ba081f12ae346ad, type: 3}
+    - {fileID: 8300000, guid: e6c9a68e7f78f8c43a47dad53adb187c, type: 3}
+    - {fileID: 8300000, guid: 361c36829c0f01f4e9d48a8903edb061, type: 3}
+    - {fileID: 8300000, guid: 64b7d086d835b114dad4e84d89ba521f, type: 3}
+    - {fileID: 8300000, guid: da9ac0658826f6348b2c9e67fb1e8c72, type: 3}
+    - {fileID: 8300000, guid: 4eccd8160c3f8c047916bba472da5d16, type: 3}
+  Sky: {fileID: 2100000, guid: 14beff74dccb4754dae7d3549cacbb47, type: 2}

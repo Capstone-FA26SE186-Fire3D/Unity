@@ -23,9 +23,21 @@ MonoBehaviour:
   - Key: floor.carpet
     Material: {fileID: 2100000, guid: 846c49a8e47e59a4fa8da52161bfc98a, type: 2}
     RepeatMeters: 1
+  - Key: floor.epoxy
+    Material: {fileID: 2100000, guid: 83f1432d2d1c6704d8fb45f1a3c8d5af, type: 2}
+    RepeatMeters: 2
+  - Key: floor.rubber
+    Material: {fileID: 2100000, guid: 732c4f711705e1f45b2e7abaee55bd7c, type: 2}
+    RepeatMeters: 0.6
+  - Key: floor.terrazzo
+    Material: {fileID: 2100000, guid: 9215f24ea1eb32f41a2ba70a15977eb9, type: 2}
+    RepeatMeters: 1.2
   - Key: floor.tile
     Material: {fileID: 2100000, guid: 7cb5e381dac67cb469978a7e832ddd0d, type: 2}
     RepeatMeters: 1.2
+  - Key: floor.vinyl
+    Material: {fileID: 2100000, guid: e0976ea66c411d7449a7507fabf52a23, type: 2}
+    RepeatMeters: 1
   - Key: floor.wood
     Material: {fileID: 2100000, guid: c3fc587f31ac5e24987f02e99485b9fa, type: 2}
     RepeatMeters: 2
@@ -41,18 +53,27 @@ MonoBehaviour:
   - Key: metal.painted
     Material: {fileID: 2100000, guid: 19b1e2c553332b24d82c48efa91fe1c3, type: 2}
     RepeatMeters: 1
+  - Key: metal.stainless
+    Material: {fileID: 2100000, guid: 1dba3f0fdcf11a848bb408cde7679e69, type: 2}
+    RepeatMeters: 0.5
   - Key: stone
     Material: {fileID: 2100000, guid: ea6ded586751128428c4243bc6062868, type: 2}
     RepeatMeters: 1.5
   - Key: wall.brick
     Material: {fileID: 2100000, guid: 84bbbeb1670f3b54c979aaaa1920eaf2, type: 2}
     RepeatMeters: 1.5
+  - Key: wall.paint
+    Material: {fileID: 2100000, guid: 453b121fee3bed249bb22d5661908f10, type: 2}
+    RepeatMeters: 2
   - Key: wall.plaster
     Material: {fileID: 2100000, guid: e5367d5d31542c342a1839212b565a0f, type: 2}
     RepeatMeters: 2
   - Key: wall.tile
     Material: {fileID: 2100000, guid: 78a24d788e06e9d45962066261f48a63, type: 2}
     RepeatMeters: 1
+  - Key: wall.tile.white
+    Material: {fileID: 2100000, guid: 12eaf51767e46044ba3baa6e0235227d, type: 2}
+    RepeatMeters: 0.6
   - Key: wood
     Material: {fileID: 2100000, guid: 3db011aa03d1b6d43bfbfed1b1826c03, type: 2}
     RepeatMeters: 1

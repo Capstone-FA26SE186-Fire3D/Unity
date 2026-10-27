@@ -293,9 +293,9 @@
         },
         "rotation": {
           "x": 0.0,
-          "y": -1.0,
+          "y": 0.0,
           "z": 0.0,
-          "w": -4.371139e-08
+          "w": 1.0
         }
       },
       "capability": {
@@ -324,7 +324,7 @@
         "id": "bait.belongings",
         "version": "1.0.0"
       },
-      "label": "Ba lô của bạn"
+      "label": "Laptop của bạn"
     },
     {
       "id": "stair-door-l1",

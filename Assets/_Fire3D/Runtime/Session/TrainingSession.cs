@@ -77,6 +77,7 @@ namespace Fire3D.Unity.Session
             _log = new SessionEventLog(() => _elapsed, launch.ResumeFromSequence);
             _ctx = new GameContext(world.Simulation, _log, launch.Mode, scenario, () => _elapsed);
             GameContext.Install(_ctx);
+            GameAudio.Bind(assets);
 
             _player = playerRig.GetComponent<PlayerMotor>();
             _vitals = playerRig.GetComponent<PlayerVitals>();
@@ -85,6 +86,13 @@ namespace Fire3D.Unity.Session
             _ctx.Player = _player;
             _ctx.Vitals = _vitals;
             _player.Teleport(world.SpawnPosition, world.SpawnYaw);
+            if (assets != null && assets.Sky != null)
+            {
+                // The street seen through windows; ambient light stays the baked/flat one.
+                RenderSettings.skybox = assets.Sky;
+                if (Camera.main != null)
+                    Camera.main.clearFlags = CameraClearFlags.Skybox;
+            }
             _player.InputEnabled = false;
 
             foreach (var exit in world.Exits)
@@ -123,6 +131,13 @@ namespace Fire3D.Unity.Session
                 IsFirstPerson = () => _player.CameraRig != null && _player.CameraRig.FirstPerson,
             }, _interaction, _vitals, _player, _input);
             _ctx.Message += _hud.Toast;
+            _ctx.Message += (_, tone) =>
+            {
+                if (tone == MessageTone.Success)
+                    GameAudio.Ui(GameAudio.Sounds?.UiSuccess);
+                else if (tone == MessageTone.Danger)
+                    GameAudio.Ui(GameAudio.Sounds?.UiError);
+            };
 
             foreach (var w in world.Warnings)
                 Debug.LogWarning($"[Fire3D] {w}");

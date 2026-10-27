@@ -18,5 +18,12 @@ Texture PBR dùng chung cho mọi tòa nhà. GLB từ Blender worker chỉ mang 
 | stone | Marble012 | 1.5 |
 | metal.painted | Metal027 | 1.0 |
 | metal.brushed | Metal009 | 0.5 |
+| floor.epoxy | Concrete048 | 2.0 |
+| floor.vinyl | Plastic011 | 1.0 |
+| floor.terrazzo | Tiles040 | 1.2 |
+| floor.rubber | Rubber004 | 0.6 |
+| wall.tile.white | Tiles133A | 0.6 |
+| wall.paint | Paint004 | 2.0 |
+| metal.stainless | Metal012 | 0.5 |
 
 Giấy phép: mọi texture lấy từ [ambientCG](https://ambientcg.com) theo **CC0 1.0** (public domain), được dùng, sửa và phân phối lại không cần ghi công. Không đưa file IFC mẫu của spike vào repo vì giấy phép chưa rõ.

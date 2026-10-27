@@ -44,6 +44,7 @@ namespace Fire3D.Unity.Gameplay.Player
             player.AddComponent<PlayerVitals>();
             var motor = player.AddComponent<PlayerMotor>();
             var interaction = player.AddComponent<InteractionController>();
+            player.AddComponent<Presentation.PlayerAudio>();
             SetPrivate(interaction, "handAnchor", hand);
             SetPrivate(motor, "visual", visual);
 

@@ -45,6 +45,44 @@ namespace Fire3D.Unity.Content
         public ParticleSystem SprinklerPrefab;
         public MaterialLibrary Materials;
         public AudioClip AlarmClip;
+        public SoundSet Sounds = new();
+
+        /// <summary>Sky seen through windows (Skybox/Panoramic material); null keeps the camera's solid background.</summary>
+        public Material Sky;
+
+        /// <summary>Gameplay sound effects (Art/Audio); any clip may be missing, the game then stays silent for it.</summary>
+        [Serializable]
+        public sealed class SoundSet
+        {
+            public AudioClip FireLoop;
+            public AudioClip FireLarge;
+            public AudioClip RoomTone;
+            public AudioClip Sparks;
+            public List<AudioClip> Panting = new();
+            public AudioClip DoorOpen;
+            public AudioClip DoorClose;
+            public AudioClip DoorTouch;
+            public AudioClip CallPointPress;
+            public AudioClip ExtinguisherPin;
+            public AudioClip ExtinguisherSpray;
+            public AudioClip SprinklerSpray;
+            public AudioClip TapRunning;
+            public AudioClip Cough;
+            public AudioClip ElevatorDing;
+            public AudioClip PowerCut;
+            public AudioClip UiClick;
+            public AudioClip UiSuccess;
+            public AudioClip UiError;
+            public List<AudioClip> Footsteps = new();
+            public List<AudioClip> Crawl = new();
+
+            /// <summary>Ordinary (wooden) doors; fire and exit doors use the heavier push-bar <see cref="DoorOpen"/>/<see cref="DoorClose"/>.</summary>
+            public List<AudioClip> DoorOpenWood = new();
+            public List<AudioClip> DoorCloseWood = new();
+
+            public static AudioClip Pick(List<AudioClip> clips, AudioClip fallback) =>
+                clips != null && clips.Count > 0 ? clips[UnityEngine.Random.Range(0, clips.Count)] : fallback;
+        }
 
         public GameObject PrefabFor(string capability)
         {
