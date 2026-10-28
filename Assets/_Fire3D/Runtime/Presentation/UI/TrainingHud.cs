@@ -76,11 +76,19 @@ namespace Fire3D.Unity.Presentation.UI
         private CanvasGroup _joyGhostGroup;
         private bool _hasMoved;
 
+        // Round thumb buttons act on the held item; object actions are tiles on the world prompt.
         private readonly HudButton[] _actions = new HudButton[ActionResolver.MaxButtons];
+        private readonly int[] _roundSlots = new int[ActionResolver.MaxButtons];
+        private readonly HudButton[] _tiles = new HudButton[ActionResolver.MaxButtons];
+        private readonly int[] _tileSlots = new int[ActionResolver.MaxButtons];
+        private int _tileCount;
+        private static readonly Vector2 ChipSize = new(204f, 58f);
+        private const float ChipGap = 8f;
         private HudButton _crouch, _pauseButton, _viewButton;
 
         private RectTransform _prompt;
         private CanvasGroup _promptGroup;
+        private RectTransform _promptPill;
         private Text _promptName;
         private Image _promptIcon;
         private Interactable _promptTarget;
@@ -333,8 +341,8 @@ namespace Fire3D.Unity.Presentation.UI
                 var b = HudButton.Create(hud, $"Action{i + 1}", anchor, pos, d);
                 b.Rect.pivot = new Vector2(0.5f, 0.5f);
                 b.Rect.anchoredPosition = pos;
-                b.Down += () => _interaction?.Press(slot);
-                b.Up += () => _interaction?.Release(slot);
+                b.Down += () => _interaction?.Press(_roundSlots[slot]);
+                b.Up += () => _interaction?.Release(_roundSlots[slot]);
                 _actions[i] = b;
                 _touchBlockers.Add(b.Rect);
                 b.gameObject.SetActive(false);
@@ -349,18 +357,31 @@ namespace Fire3D.Unity.Presentation.UI
 
         private void BuildPrompt(Transform hud)
         {
-            _prompt = UiKit.Rect("WorldPrompt", hud, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(360f, 58f));
+            // Anchored at the object: the action tiles sit just above it, the object's name above the tiles.
+            _prompt = UiKit.Rect("WorldPrompt", hud, new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(460f, 260f));
             _promptGroup = _prompt.gameObject.AddComponent<CanvasGroup>();
             _promptGroup.blocksRaycasts = false;
-            UiKit.Image(_prompt, UiKit.GlassStrong, UiKit.Pill, true);
-            var badge = UiKit.Rect("Badge", _prompt, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(7f, 0f), new Vector2(44f, 44f));
+            // Small caption with the object's name above the chips.
+            _promptPill = UiKit.Rect("Name", _prompt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, new Vector2(220f, 34f));
+            UiKit.Image(_promptPill, UiKit.GlassStrong, UiKit.Pill, true);
+            var badge = UiKit.Rect("Badge", _promptPill, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(4f, 0f), new Vector2(26f, 26f));
             UiKit.Image(badge, UiKit.Accent, UiKit.Circle);
-            _promptIcon = UiKit.IconImage(UiKit.Centered("Icon", badge, Vector2.zero, new Vector2(26f, 26f)), "touch", Color.white);
-            _promptName = UiKit.Label(UiKit.Rect("Name", _prompt, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(26f, 0f), new Vector2(-72f, 0f)),
-                "", 23, UiKit.Text, TextAnchor.MiddleCenter, UiKit.SemiBold);
+            _promptIcon = UiKit.IconImage(UiKit.Centered("Icon", badge, Vector2.zero, new Vector2(16f, 16f)), "touch", Color.white);
+            _promptName = UiKit.Label(UiKit.Rect("Text", _promptPill, Vector2.zero, Vector2.one, new Vector2(0.5f, 0.5f), new Vector2(15f, 0f), new Vector2(-46f, 0f)),
+                "", 18, UiKit.Muted, TextAnchor.MiddleCenter, UiKit.SemiBold);
             _promptName.horizontalOverflow = HorizontalWrapMode.Overflow;
-            var tail = UiKit.Rect("Tail", _prompt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 1f), new Vector2(0f, 2f), new Vector2(14f, 14f));
-            UiKit.Image(tail, UiKit.GlassStrong, UiKit.Circle);
+            for (var i = 0; i < _tiles.Length; i++)
+            {
+                var k = i;
+                var tile = HudButton.CreateChip(_prompt, $"Chip{i + 1}", ChipSize);
+                tile.Down += () => _interaction?.Tap(_tileSlots[k]);
+                _tiles[i] = tile;
+                _touchBlockers.Add(tile.Rect);
+                tile.gameObject.SetActive(false);
+            }
+
+            UiKit.Image(UiKit.Rect("Tail", _prompt, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(12f, 12f)),
+                UiKit.GlassStrong, UiKit.Circle);
             _promptGroup.alpha = 0f;
         }
 
@@ -536,20 +557,48 @@ namespace Fire3D.Unity.Presentation.UI
             if (_interaction == null)
                 return;
             var actions = _interaction.Actions;
-            for (var i = 0; i < _actions.Length; i++)
+            var round = 0;
+            _tileCount = 0;
+            for (var i = 0; i < actions.Count; i++)
             {
-                var b = _actions[i];
-                var on = i < actions.Count;
+                if (actions[i].Source == ActionSource.HeldItem && round < _roundSlots.Length)
+                    _roundSlots[round++] = i;
+                else if (actions[i].Source == ActionSource.Target && _tileCount < _tileSlots.Length)
+                    _tileSlots[_tileCount++] = i;
+            }
+
+            for (var k = 0; k < _actions.Length; k++)
+            {
+                var b = _actions[k];
+                var on = k < round;
                 if (b.gameObject.activeSelf != on)
                     b.gameObject.SetActive(on);
                 if (!on)
                     continue;
+                var i = _roundSlots[k];
                 var a = actions[i];
-                var hold = a.IsHold && a.Id != "spray";
-                b.SetContent($"{a.Id}:{a.Source}", IconFor(a), hold ? $"{a.Label} · giữ" : a.Id == "spray" ? $"{a.Label} · giữ" : a.Label);
+                b.SetContent($"{a.Id}:{a.Source}", IconFor(a), a.IsHold ? $"{a.Label} · giữ" : a.Label);
                 b.SetRecommended(a.Recommended);
-                b.SetProgress(hold ? _interaction.HoldProgress(i) : a.Id == "spray" && _interaction.IsPressed(i) ? 1f : 0f);
+                b.SetProgress(a.IsHold && a.Id != "spray" ? _interaction.HoldProgress(i) : a.Id == "spray" && _interaction.IsPressed(i) ? 1f : 0f);
                 b.SetTint(UiKit.Text);
+            }
+
+            for (var k = 0; k < _tiles.Length; k++)
+            {
+                var t = _tiles[k];
+                var on = k < _tileCount;
+                if (t.gameObject.activeSelf != on)
+                    t.gameObject.SetActive(on);
+                if (!on)
+                    continue;
+                var i = _tileSlots[k];
+                var a = actions[i];
+                t.SetContent($"{a.Id}:{a.Source}", IconFor(a), a.Label);
+                t.SetRecommended(a.Recommended);
+                t.SetProgress(a.IsHold ? _interaction.HoldProgress(i) : 0f);
+                t.SetTint(UiKit.Text);
+                // Stacked upwards from the object, first action on top like PUBG's pick-up list.
+                t.Rect.anchoredPosition = new Vector2(0f, 16f + (_tileCount - 1 - k) * (ChipSize.y + ChipGap));
             }
 
             var firstPerson = _model.IsFirstPerson?.Invoke() ?? false;
@@ -644,7 +693,7 @@ namespace Fire3D.Unity.Presentation.UI
                 _promptName.text = PromptText(target);
                 var actions = _interaction.Actions;
                 _promptIcon.sprite = UiKit.Icon(actions.Count > 0 ? IconFor(actions[0]) : "touch");
-                _prompt.sizeDelta = new Vector2(Mathf.Clamp(96f + _promptName.preferredWidth, 220f, 560f), 58f);
+                _promptPill.sizeDelta = new Vector2(Mathf.Clamp(56f + _promptName.preferredWidth, 120f, 420f), 34f);
             }
             else if (visible)
             {
@@ -655,6 +704,9 @@ namespace Fire3D.Unity.Presentation.UI
 
             _promptAlpha = Mathf.MoveTowards(_promptAlpha, visible ? 1f : 0f, Time.unscaledDeltaTime / 0.15f);
             _promptGroup.alpha = _promptAlpha;
+            _promptGroup.blocksRaycasts = visible && _promptAlpha > 0.5f;
+            // With nothing to do on the object right now only its name shows, sitting on it.
+            _promptPill.anchoredPosition = new Vector2(0f, 16f + _tileCount * (ChipSize.y + ChipGap));
             if (visible)
             {
                 var rise = (1f - _promptAlpha) * -10f;

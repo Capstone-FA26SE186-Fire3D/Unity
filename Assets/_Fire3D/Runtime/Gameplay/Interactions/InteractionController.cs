@@ -2,7 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using Fire3D.Contracts;
 using Fire3D.Simulation;
+using Fire3D.Unity.Content;
 using Fire3D.Unity.Gameplay.Player;
+using Fire3D.Unity.Presentation;
 using Fire3D.Unity.Presentation.UI;
 using Newtonsoft.Json.Linq;
 using Unity.Mathematics;
@@ -33,7 +35,16 @@ namespace Fire3D.Unity.Gameplay.Interactions
         private float _towelWetUntil = -1f;
         private bool _coverEventPending;
         private bool _sprayActive;
+
+        // A timed object action started by one tap (dipping in water): it fills on its own while the player stays.
+        private int _autoSlot = -1;
+        private Interactable _autoTarget;
+        private Vector3 _autoFrom;
+        private string _autoLabel;
+        [SerializeField] private float autoLeaveMeters = 0.6f;
+        private AudioSource _sprayAudio;
         private float _sprayStart;
+        private ParticleSystem _sprayFx;
         private float _dischargeLeft;
         private bool _largeFireReported;
 
@@ -117,9 +128,48 @@ namespace Fire3D.Unity.Gameplay.Interactions
             }
         }
 
+        /// <summary>
+        /// An object tile was tapped. Instant actions run at once; a timed one (dipping a towel) starts filling and
+        /// completes on its own, but fails if the player walks away or turns to something else first.
+        /// </summary>
+        public void Tap(int slot)
+        {
+            if (slot < 0 || slot >= _actions.Count || Busy || _autoSlot >= 0)
+                return;
+            var action = _actions[slot];
+            if (!action.IsHold || action.Id == "spray")
+            {
+                Press(slot);
+                return;
+            }
+
+            _pressed[slot] = true;
+            _holdProgress[slot] = 0f;
+            _autoSlot = slot;
+            _autoTarget = Target;
+            _autoFrom = transform.position;
+            _autoLabel = action.Label;
+        }
+
+        /// <summary>Slot of the tapped timed action still filling, or -1.</summary>
+        public int RunningTap => _autoSlot;
+
+        private void FailTap(GameContext ctx)
+        {
+            if (_autoSlot < _pressed.Length)
+            {
+                _pressed[_autoSlot] = false;
+                _holdProgress[_autoSlot] = 0f;
+            }
+
+            _autoSlot = -1;
+            Haptics.Warn();
+            ctx.Show($"{_autoLabel} chưa xong. Hãy đứng yên và làm lại.", MessageTone.Danger);
+        }
+
         public void Release(int slot)
         {
-            if (slot < 0 || slot >= _pressed.Length)
+            if (slot < 0 || slot >= _pressed.Length || slot == _autoSlot)
                 return;
             if (_pressed[slot] && slot < _actions.Count && _actions[slot].Id == "spray")
                 EndSpray();
@@ -143,6 +193,8 @@ namespace Fire3D.Unity.Gameplay.Interactions
 
             UpdateHeldItem(ctx);
             Target = FindTarget();
+            if (_autoSlot >= 0 && (Target != _autoTarget || (transform.position - _autoFrom).sqrMagnitude > autoLeaveMeters * autoLeaveMeters))
+                FailTap(ctx);
             var held = _held != null ? new HeldSnapshot(_held.CapabilityId, _held.State, _held.DisplayName) : HeldSnapshot.Empty;
             var previous = _actions;
             _actions = ActionResolver.Resolve(Target?.CapabilityId, Target?.State, Target?.DisplayName, held, ctx.Guided, Recommend(ctx));
@@ -155,6 +207,8 @@ namespace Fire3D.Unity.Gameplay.Interactions
                     _pressed[i] = false;
                     _holdProgress[i] = 0f;
                 }
+
+                _autoSlot = -1;
             }
 
             for (var i = 0; i < _actions.Count; i++)
@@ -171,6 +225,8 @@ namespace Fire3D.Unity.Gameplay.Interactions
                 _holdProgress[i] += Time.deltaTime / Mathf.Max(0.01f, a.Definition.HoldSeconds);
                 if (_holdProgress[i] >= 1f)
                 {
+                    if (i == _autoSlot)
+                        _autoSlot = -1;
                     Execute(a);
                     _pressed[i] = false;
                     _holdProgress[i] = 0f;
@@ -260,6 +316,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
             {
                 case "press" when cap == Capabilities.AlarmCallPoint:
                     ctx.Simulation.Enqueue(new HazardCommand { Kind = HazardCommandKind.RaiseAlarm, ObjectId = target.SimulationId });
+                    GameAudio.PlayAt(GameAudio.Sounds?.CallPointPress, target.PromptPosition, 0.8f);
                     log.EmitObject(EventTypes.AlarmRaised, target.ObjectId);
                     ctx.Show("Đã nhấn chuông báo cháy", MessageTone.Success);
                     break;
@@ -268,6 +325,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
                 {
                     var hot = DoorIsHot(ctx, target);
                     _checkedDoors.Add(target.ObjectId);
+                    GameAudio.PlayAt(GameAudio.Sounds?.DoorTouch, target.PromptPosition, 0.35f);
                     log.Emit(EventTypes.CheckedDoorHeat, new JObject { ["objectId"] = target.ObjectId, ["hot"] = hot });
                     ctx.Show(hot ? "Cửa nóng! Có thể có lửa phía sau, đừng mở." : "Cửa không nóng.", hot ? MessageTone.Danger : MessageTone.Info);
                     var heatView = target.GetComponent<DoorView>();
@@ -298,6 +356,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
                     break;
 
                 case "call" when cap == Capabilities.Elevator:
+                    GameAudio.PlayAt(GameAudio.Sounds?.ElevatorDing, target.PromptPosition, 0.7f);
                     log.EmitObject(EventTypes.UsedElevator, target.ObjectId);
                     if (ctx.Guided)
                         ctx.Hint("Không dùng thang máy khi có cháy. Hãy dùng cầu thang bộ.");
@@ -320,6 +379,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
 
                 case "pull_pin":
                     target.State = "armed";
+                    GameAudio.PlayAt(GameAudio.Sounds?.ExtinguisherPin, target.transform.position, 0.8f);
                     ctx.Show("Đã rút chốt bình chữa cháy");
                     ctx.Hint("Giữ nút Phun và hướng vào gốc lửa.");
                     break;
@@ -328,6 +388,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
                     if (_held != null && _held.CapabilityId == Capabilities.ItemTowel)
                     {
                         _held.State = "wet";
+                        GameAudio.PlayAt(GameAudio.Sounds?.TapRunning, target.PromptPosition, 0.6f, 2.5f);
                         _towelWetUntil = _held.TryGetFloat("dryAfterSeconds", out var dry) ? ctx.Time + dry : float.MaxValue;
                         log.Emit(EventTypes.ItemWetted, new JObject { ["objectId"] = target.ObjectId, ["itemId"] = _held.ObjectId });
                         ctx.Show("Khăn đã ướt");
@@ -424,6 +485,15 @@ namespace Fire3D.Unity.Gameplay.Interactions
         private static void SetDoor(GameContext ctx, Interactable door, bool open, Vector3 opener)
         {
             door.State = open ? "open" : "closed";
+            var s = GameAudio.Sounds;
+            if (s != null)
+            {
+                var wood = door.CapabilityId == Capabilities.DoorStandard;
+                var clip = open
+                    ? wood ? RuntimeAssets.SoundSet.Pick(s.DoorOpenWood, s.DoorOpen) : s.DoorOpen
+                    : wood ? RuntimeAssets.SoundSet.Pick(s.DoorCloseWood, s.DoorClose) : s.DoorClose;
+                GameAudio.PlayAt(clip, door.PromptPosition, 0.75f);
+            }
             var view = door.GetComponent<DoorView>();
             if (view != null)
                 view.SetOpen(open, opener);
@@ -435,6 +505,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
             if (_held != null)
                 Drop();
             _held = item;
+            _sprayAudio = null;
             item.Held = true;
             if (item.CapabilityId == Capabilities.ExtinguisherPortable)
             {
@@ -521,12 +592,36 @@ namespace Fire3D.Unity.Gameplay.Interactions
                 return;
             _sprayActive = true;
             _sprayStart = Ctx.Time;
+            if (_sprayAudio == null)
+                _sprayAudio = _held.GetComponent<AudioSource>();
+            if (_sprayAudio == null)
+                _sprayAudio = GameAudio.Loop(GameAudio.Sounds?.ExtinguisherSpray, _held.gameObject, 0.7f);
+            if (_sprayAudio != null)
+                _sprayAudio.Play();
+            // Powder cloud from the nozzle, blown the way the player faces.
+            if (_sprayFx == null && Ctx.Assets != null && Ctx.Assets.SprayPrefab != null)
+                _sprayFx = Instantiate(Ctx.Assets.SprayPrefab, _held.transform);
+            if (_sprayFx != null)
+            {
+                AimSpray();
+                _sprayFx.Play(true);
+            }
+        }
+
+        private void AimSpray()
+        {
+            if (_sprayFx == null || _held == null)
+                return;
+            var r = _held.GetComponentInChildren<Renderer>();
+            var from = r != null ? r.bounds.center + Vector3.up * 0.1f : _held.transform.position;
+            _sprayFx.transform.SetPositionAndRotation(from + transform.forward * 0.25f, Quaternion.LookRotation(transform.forward + Vector3.down * 0.25f));
         }
 
         private void TickSpray(GameContext ctx)
         {
             if (!_sprayActive)
                 return;
+            AimSpray();
             _dischargeLeft -= Time.deltaTime;
             if (_dischargeLeft <= 0f)
             {
@@ -584,6 +679,10 @@ namespace Fire3D.Unity.Gameplay.Interactions
             if (!_sprayActive || Ctx == null)
                 return;
             _sprayActive = false;
+            if (_sprayAudio != null)
+                _sprayAudio.Stop();
+            if (_sprayFx != null)
+                _sprayFx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             var duration = Mathf.Max(0f, Ctx.Time - _sprayStart);
             Ctx.Log.Emit(EventTypes.ExtinguisherUsed, new JObject { ["objectId"] = _held != null ? _held.ObjectId : "", ["durationSeconds"] = System.Math.Round(duration, 2) });
         }

@@ -20,16 +20,23 @@ STAIR_CLASSES = ("IfcStair", "IfcStairFlight", "IfcRamp", "IfcRampFlight")
 MATERIAL_RULES = [
     (r"deckenraster|ceiling|himling|akustik|acoustic|decke -|trần", "ceiling.tile"),
     (r"glas|glass|glazing|vindu|kính", "glass.clear"),
+    (r"epoxy|epoxid|polished concrete|beschichtung|sàn epoxy|bê tông mài", "floor.epoxy"),
+    (r"vinyl|linoleum|linol|pvc|sàn nhựa|kautschuk", "floor.vinyl"),
+    (r"terrazzo|granito|đá mài", "floor.terrazzo"),
+    (r"rubber|gummi|cao su|anti.?slip|chống trơn", "floor.rubber"),
+    (r"(weiß|weiss|white|trắng).*(fliese|tile)|(fliese|tile|gạch ốp).*(weiß|weiss|white|trắng)", "wall.tile.white"),
     (r"fliese|tile|flis|ceramic|keramik|gạch men", "floor.tile"),
     (r"holzdiel|dielen|parkett|wood ?floor|laminat|floor.*wood|sàn gỗ", "floor.wood"),
     (r"teppich|carpet|tepp|thảm", "floor.carpet"),
     (r"ziegel|brick|masonry|tegl|mauerwerk|gạch", "wall.brick"),
     (r"beton|concrete|stb|betong|estrich|screed|bê tông", "concrete"),
-    (r"chrom|alumin|stainless|edelstahl|inox", "metal.brushed"),
+    (r"stainless|edelstahl|inox|nirosta", "metal.stainless"),
+    (r"chrom|alumin", "metal.brushed"),
     (r"stahl|steel|metal|metall|st[aå]l|ral \d|thép", "metal.painted"),
     (r"holz|wood|eiche|esche|kiefer|oak|ash|pine|\btre\b|finer|gỗ", "wood"),
     (r"naturstein|marble|granit|sandstein|stone|stein|đá", "stone"),
-    (r"verputz|plaster|gips|gypsum|drywall|plasterboard|rigips|malt|paint|farbe|maling|sơn|vữa", "wall.plaster"),
+    (r"paint|farbe|anstrich|maling|sơn", "wall.paint"),
+    (r"verputz|plaster|gips|gypsum|drywall|plasterboard|rigips|malt|vữa", "wall.plaster"),
 ]
 
 CLASS_MATERIAL = {
@@ -48,6 +55,9 @@ PREVIEW_COLOURS = {
     "wall.brick": (0.55, 0.3, 0.22, 1.0), "wall.plaster": (0.9, 0.88, 0.84, 1.0), "wall.tile": (0.85, 0.87, 0.88, 1.0),
     "concrete": (0.6, 0.6, 0.58, 1.0), "metal.brushed": (0.75, 0.76, 0.78, 1.0), "metal.painted": (0.35, 0.37, 0.4, 1.0),
     "wood": (0.58, 0.4, 0.25, 1.0), "stone": (0.78, 0.76, 0.72, 1.0),
+    "floor.epoxy": (0.55, 0.56, 0.55, 1.0), "floor.vinyl": (0.62, 0.63, 0.64, 1.0), "floor.terrazzo": (0.74, 0.72, 0.68, 1.0),
+    "floor.rubber": (0.18, 0.18, 0.19, 1.0), "wall.tile.white": (0.93, 0.93, 0.92, 1.0), "wall.paint": (0.88, 0.87, 0.83, 1.0),
+    "metal.stainless": (0.78, 0.79, 0.8, 1.0),
 }
 
 HIDDEN_LAYER = re.compile(r"stud|air|insulation|d(ä|a)mm|membrane|vapou?r|misc|leer|empty|isolasjon|luft", re.I)
@@ -56,7 +66,10 @@ MASS = re.compile(r"\bmass\b|massing", re.I)
 
 FLOOR_CLASSES = ("IfcSlab", "IfcCovering", "IfcStair", "IfcStairFlight", "IfcRamp", "IfcRampFlight")
 # A floor finish named on a non-floor element (door leaf laminate, wall tiles) maps to the matching non-floor key.
-NON_FLOOR_EQUIVALENT = {"floor.tile": "wall.tile", "floor.wood": "wood", "floor.carpet": None}
+NON_FLOOR_EQUIVALENT = {
+    "floor.tile": "wall.tile", "floor.wood": "wood", "floor.carpet": None, "floor.epoxy": "concrete", "floor.vinyl": None,
+    "floor.terrazzo": "stone", "floor.rubber": None,
+}
 
 
 def library_key_for(names: list[str], ifc_class: str, predefined: str | None) -> tuple[str, bool]:
@@ -65,6 +78,8 @@ def library_key_for(names: list[str], ifc_class: str, predefined: str | None) ->
         lowered = (name or "").lower()
         for pattern, key in MATERIAL_RULES:
             if re.search(pattern, lowered):
+                if key == "wall.tile.white" and ifc_class in FLOOR_CLASSES:
+                    key = "floor.tile"
                 if key.startswith("floor.") and ifc_class not in FLOOR_CLASSES:
                     key = NON_FLOOR_EQUIVALENT[key]
                     if key is None:

@@ -6,7 +6,8 @@ using UnityEngine.UI;
 namespace Fire3D.Unity.Presentation.UI
 {
     /// <summary>
-    /// Round mobile-shooter style action button: glass disc, icon, label chip, radial hold ring, recommended glow.
+    /// Mobile-shooter style action button: round thumb button or compact interaction chip; glass face, icon, label,
+    /// radial progress ring, recommended glow.
     /// Pops in when its action changes, dips to 0.9× while pressed (60 ms) and springs back (ease-out).
     /// </summary>
     public sealed class HudButton : MonoBehaviour, IPointerDownHandler, IPointerUpHandler, IPointerExitHandler
@@ -55,6 +56,37 @@ namespace Fire3D.Unity.Presentation.UI
                 b._label.resizeTextMaxSize = 21;
             }
 
+            return b;
+        }
+
+        /// <summary>
+        /// Compact interaction chip (PUBG Mobile style): low rounded bar, icon on the left inside a progress ring,
+        /// label on the right. Pivot bottom-centre.
+        /// </summary>
+        public static HudButton CreateChip(Transform parent, string name, Vector2 size)
+        {
+            var rt = UiKit.Rect(name, parent, new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), new Vector2(0.5f, 0f), Vector2.zero, size);
+            var b = rt.gameObject.AddComponent<HudButton>();
+            b._rt = rt;
+            b._glow = UiKit.Image(UiKit.Centered("Glow", rt, Vector2.zero, new Vector2(size.x * 1.25f, size.y * 1.9f)), new Color(1f, 0.5f, 0.15f, 0f), UiKit.Glow);
+            b._rim = UiKit.Image(UiKit.Stretch("Rim", rt, -2f), UiKit.Stroke, UiKit.Rounded, true);
+            b._disc = UiKit.Image(UiKit.Stretch("Disc", rt), UiKit.Glass, UiKit.Rounded, true);
+            b._disc.raycastTarget = true;
+            var h = size.y;
+            var iconBox = UiKit.Rect("IconBox", rt, new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(0f, 0.5f), new Vector2(7f, 0f), Vector2.one * (h - 12f));
+            // White so the ring reads on the orange face of a recommended chip.
+            b._progress = UiKit.Image(UiKit.Stretch("Progress", iconBox, -1f), Color.white, UiKit.Ring);
+            b._progress.type = Image.Type.Filled;
+            b._progress.fillMethod = Image.FillMethod.Radial360;
+            b._progress.fillOrigin = (int)Image.Origin360.Top;
+            b._progress.fillClockwise = true;
+            b._progress.fillAmount = 0f;
+            b._icon = UiKit.IconImage(UiKit.Centered("Icon", iconBox, Vector2.zero, Vector2.one * h * 0.42f), null, UiKit.Text);
+            b._label = UiKit.Label(UiKit.Rect("Text", rt, Vector2.zero, Vector2.one, new Vector2(0f, 0.5f), new Vector2(h + 2f, 0f), new Vector2(-h - 12f, 0f)),
+                "", 21, UiKit.Text, TextAnchor.MiddleLeft, UiKit.SemiBold);
+            b._label.resizeTextForBestFit = true;
+            b._label.resizeTextMinSize = 14;
+            b._label.resizeTextMaxSize = 21;
             return b;
         }
 

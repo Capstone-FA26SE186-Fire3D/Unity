@@ -330,6 +330,78 @@ namespace Fire3D.Unity.Presentation
         /// URP particle material: additive (fire) or alpha (smoke), optional flipbook blending, soft particles
         /// (fade where the quad meets floor/walls, needs the depth texture) and camera near fade.
         /// </summary>
+        /// <summary>
+        /// Sprinkler water: a cone of small droplets falling from the head. <paramref name="droplet"/> is a soft round
+        /// sprite (Art/VFX/Droplet.png); null uses the generated dot.
+        /// </summary>
+        public static ParticleSystem Droplets(Transform parent, Texture2D droplet)
+        {
+            var go = new GameObject("SprinklerSpray");
+            go.transform.SetParent(parent, false);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.startLifetime = 0.9f;
+            main.startSpeed = 3.5f;
+            main.startSize = new ParticleSystem.MinMaxCurve(0.03f, 0.06f);
+            main.startColor = new Color(0.8f, 0.9f, 1f, 0.7f);
+            main.gravityModifier = 1f;
+            main.maxParticles = 600;
+            var emission = ps.emission;
+            emission.rateOverTime = 320f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 55f;
+            shape.radius = 0.03f;
+            shape.rotation = new Vector3(90f, 0f, 0f);
+            var m = Material(fire: false, droplet, additive: false, lit: false, flipbook: false);
+            m.name = "WaterDroplets";
+            var r = Render(go, m, false, 0f);
+            r.renderMode = ParticleSystemRenderMode.Stretch;
+            r.lengthScale = 2.5f;
+            return ps;
+        }
+
+        /// <summary>
+        /// Extinguisher discharge: a short cone of pale powder puffs blown forward (local +Z) that spread and fade.
+        /// <paramref name="puff"/> is a soft smoke sprite (Art/VFX/Powder.png).
+        /// </summary>
+        public static ParticleSystem Powder(Transform parent, Texture2D puff)
+        {
+            var go = new GameObject("ExtinguisherPowder");
+            go.transform.SetParent(parent, false);
+            var ps = go.AddComponent<ParticleSystem>();
+            ps.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            var main = ps.main;
+            main.startLifetime = 1.1f;
+            main.startSpeed = new ParticleSystem.MinMaxCurve(5f, 7f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.22f);
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, 6.28f);
+            main.startColor = new Color(0.93f, 0.92f, 0.88f, 0.75f);
+            main.gravityModifier = 0.08f;
+            main.maxParticles = 300;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            var emission = ps.emission;
+            emission.rateOverTime = 110f;
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 12f;
+            shape.radius = 0.02f;
+            var size = ps.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 0.4f, 1f, 1f));
+            var color = ps.colorOverLifetime;
+            color.enabled = true;
+            var g = new Gradient();
+            g.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0.8f, 0f), new GradientAlphaKey(0.5f, 0.4f), new GradientAlphaKey(0f, 1f) });
+            color.color = g;
+            var m = Material(fire: false, puff, additive: false, lit: true, flipbook: false);
+            m.name = "ExtinguisherPowder";
+            Render(go, m, false, 0f);
+            return ps;
+        }
+
         public static Material Material(bool fire, Texture2D texture, bool additive, bool lit, bool flipbook = true)
         {
             var shader = Shader.Find(lit ? "Universal Render Pipeline/Particles/Simple Lit" : "Universal Render Pipeline/Particles/Unlit")

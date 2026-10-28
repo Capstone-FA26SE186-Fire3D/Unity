@@ -13,6 +13,7 @@ namespace Fire3D.Unity.Presentation
         private FireSimulation _sim;
         private RuntimeAssets _assets;
         private AudioSource _alarm;
+        private AudioSource _roomTone;
         private bool _outageApplied;
         private bool _alarmOn;
         private System.Collections.Generic.Dictionary<string, Vector3> _sprinklers;
@@ -28,6 +29,13 @@ namespace Fire3D.Unity.Presentation
             SetGroup(LightGroup.Emergency, false);
             SetGroup(LightGroup.Normal, true);
             SetGroup(LightGroup.ExitSign, true);
+            // Quiet building hum (ventilation, distant traffic) until the power goes.
+            _roomTone = GameAudio.Loop(GameAudio.Sounds?.RoomTone, gameObject, 0.18f);
+            if (_roomTone != null)
+            {
+                _roomTone.spatialBlend = 0f;
+                _roomTone.Play();
+            }
         }
 
         private void Update()
@@ -41,6 +49,10 @@ namespace Fire3D.Unity.Presentation
                 SetGroup(LightGroup.Normal, false);
                 SetGroup(LightGroup.Emergency, true);
                 RenderSettings.ambientIntensity = 0.25f;
+                GameAudio.Ui(GameAudio.Sounds?.PowerCut, 0.8f);
+                GameAudio.Ui(GameAudio.Sounds?.Sparks, 0.5f);
+                if (_roomTone != null)
+                    _roomTone.Stop();
                 if (Lighting != null)
                     Lighting.Apply(LightingScenarioSwitcher.Outage);
             }
@@ -61,6 +73,9 @@ namespace Fire3D.Unity.Presentation
                     ? Instantiate(_assets.SprinklerPrefab, kv.Value, Quaternion.identity, transform)
                     : CreateSpray(kv.Value);
                 ps.Play(true);
+                var water = GameAudio.Loop(GameAudio.Sounds?.SprinklerSpray, ps.gameObject, 0.55f, 12f);
+                if (water != null)
+                    water.Play();
                 _sprays[kv.Key] = ps;
             }
         }
