@@ -113,6 +113,9 @@ namespace Fire3D.Unity.Tests.PlayModeTests
                     // Straight on from across the corridor, wide lens.
                     var front = -it.transform.forward;
                     yield return ShootFrom(target + front * 1.4f + Vector3.up * 0.2f, target, "front_transport.elevator.png", fov: 75f);
+                    // Along the wall: shows how far the frame stands out of it.
+                    var side = it.transform.right;
+                    yield return ShootFrom(target + front * 0.9f + side * 1.6f, target, "side_transport.elevator.png", fov: 70f);
                 }
             }
 

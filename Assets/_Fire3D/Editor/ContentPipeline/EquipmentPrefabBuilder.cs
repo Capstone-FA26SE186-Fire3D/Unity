@@ -224,7 +224,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var t = root.transform;
             // Sketchfab "Simple Elevator with Animation" by lhaegy.fu (CC BY): stainless door leaves, frame, floor
             // indicator and call buttons; the model's walls, cabin, mirror and floor are dropped. Scaled to a 2.25 m
-            // frame, standing on the floor, back face at z = 0, front towards -Z.
+            // frame, standing on the floor, front towards -Z. Real lift doors sit in the wall: the frame stands
+            // FrameLip proud of the wall (z = 0) and the rest is sunk into it, squashed to at most InWall deep so it
+            // does not come out the other side of a thin wall.
             var doors = Model("Sketchfab/ElevatorModern.glb", t);
             // The model's own call buttons sit on the wrong side and a second plate floats above the frame: drop
             // them and fit one up/down panel to the right of the doors below.
@@ -233,10 +235,14 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var db = Bounds(t);
             doors.localScale *= 2.25f / db.size.y;
             db = Bounds(t);
-            doors.localPosition += new Vector3(-db.center.x, -db.min.y, -db.max.z);
+            const float FrameLip = 0.03f, InWall = 0.08f;
+            if (db.size.z > FrameLip + InWall)
+                doors.localScale = Vector3.Scale(doors.localScale, new Vector3(1f, 1f, (FrameLip + InWall) / db.size.z));
+            db = Bounds(t);
+            doors.localPosition += new Vector3(-db.center.x, -db.min.y, -FrameLip - db.min.z);
             db = Bounds(t);
             var frame = Mat("ElevatorFrame", new Color(0.32f, 0.33f, 0.35f), 0.55f, metallic: 0.8f);
-            Part(PrimitiveType.Cube, "Sill", t, new Vector3(0f, 0.005f, -0.06f), new Vector3(db.size.x * 0.8f, 0.01f, 0.1f), frame);
+            Part(PrimitiveType.Cube, "Sill", t, new Vector3(0f, 0.005f, -0.02f), new Vector3(db.size.x * 0.8f, 0.01f, 0.04f), frame);
             // Call panel: brushed plate with up/down buttons, 1.1 m high, 20 cm right of the frame.
             var panelX = db.max.x + 0.2f;
             var steel = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialLibraryBuilder.MaterialsDir}/metal.stainless.mat");
@@ -250,8 +256,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
             Sign(t, "NoLift", new Vector3(panelX + 0.05f, 1.55f, -0.02f), 0.36f);
             var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, db.size.y * 0.5f, db.center.z);
-            box.size = new Vector3(db.size.x, db.size.y, Mathf.Max(0.12f, db.size.z));
+            // Tap target in front of the doors (the sunk part is inside the wall).
+            box.center = new Vector3(0f, db.size.y * 0.5f, -0.06f);
+            box.size = new Vector3(db.size.x, db.size.y, 0.12f);
             return root;
         }
 
