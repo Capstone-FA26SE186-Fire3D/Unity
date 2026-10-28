@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2077623784154546506}
+  - component: {fileID: 6270446723153660821}
   m_Layer: 0
   m_Name: Bell
   m_TagString: Untagged
@@ -29,9 +30,24 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 5137950357388761840}
+  - {fileID: 4167148137349300523}
   m_Father: {fileID: 3198536447830152656}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6270446723153660821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 481687823935210926}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 672400b7c0d0c60418913ba8ca4db1e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fire3D.Unity.Runtime::Fire3D.Unity.Presentation.CeilingMount
+  gap: 0.2
+  minHeight: 2.1
+  maxSearch: 6
 --- !u!1 &2737295060740059707
 GameObject:
   m_ObjectHideFlags: 0
@@ -63,8 +79,8 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1841644502359567947}
-  - {fileID: 2077623784154546506}
   - {fileID: 3654714667485591635}
+  - {fileID: 2077623784154546506}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!65 &2714311889320150188
@@ -86,9 +102,9 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 0.14999995, y: 0.2750001, z: 0.05964352}
-  m_Center: {x: 0, y: 1.495, z: -0.02982176}
---- !u!1 &5572035687635737500
+  m_Size: {x: 0.124999985, y: 0.12500003, z: 0.06723473}
+  m_Center: {x: 0, y: 1.4, z: -0.023617366}
+--- !u!1 &6529003869161060464
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -96,9 +112,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 5137950357388761840}
-  - component: {fileID: 1655273008894574704}
-  - component: {fileID: 4559526097440982486}
+  - component: {fileID: 4167148137349300523}
+  - component: {fileID: 202080499215182453}
+  - component: {fileID: 3454268324031541745}
   m_Layer: 0
   m_Name: Model
   m_TagString: Untagged
@@ -106,36 +122,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &5137950357388761840
+--- !u!4 &4167148137349300523
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5572035687635737500}
+  m_GameObject: {fileID: 6529003869161060464}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 0, y: 1.5575, z: -0.02982176}
+  m_LocalPosition: {x: 0, y: 2.5, z: -0.02982176}
   m_LocalScale: {x: 0.009522464, y: 0.009522464, z: 0.009522464}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2077623784154546506}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &1655273008894574704
+--- !u!33 &202080499215182453
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5572035687635737500}
+  m_GameObject: {fileID: 6529003869161060464}
   m_Mesh: {fileID: 313953359962951103, guid: 4f2a4f128599ec9488d76cf65b8a3d6a, type: 3}
---- !u!23 &4559526097440982486
+--- !u!23 &3454268324031541745
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5572035687635737500}
+  m_GameObject: {fileID: 6529003869161060464}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -205,7 +221,7 @@ Transform:
   m_GameObject: {fileID: 7359020432498955072}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.8, z: -0.005}
+  m_LocalPosition: {x: 0, y: 1.6, z: -0.005}
   m_LocalScale: {x: 0.3, y: 0.15, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
