@@ -94,18 +94,38 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
         private static GameObject CallPoint()
         {
-            // Sketchfab "Firebell & MCP" by yvesjotres (CC BY): the square push-button call point used in Vietnam,
-            // centre 1.4 m above the floor, face towards -Z (the wall is behind it at z = 0).
+            // Sketchfab "Firebell & MCP" by yvesjotres (CC BY), split into its bell and push button by
+            // Tools/CallPointModel/split_call_point.py. Mounted as one unit the way Vietnamese buildings do it: the
+            // 8.5 cm push button centred 1.4 m above the floor, the 15 cm bell right above it, the sign on top. Front
+            // towards -Z, the wall behind at z = 0.
             var root = new GameObject(Capabilities.AlarmCallPoint);
-            // The pack is a bell beside the push button, 30 cm across together.
-            var model = Model("Sketchfab/CallPointMcp.glb", root.transform);
-            Fit(root.transform, model, 0.3f);
-            FaceFront(root.transform, model);
-            var b = Bounds(root.transform);
-            model.localPosition += new Vector3(-b.center.x, 1.4f - b.center.y, -b.max.z);
+            var t = root.transform;
+            // The split button looks at the wall: turn its glass window to the room.
+            var button = WallPart(t, "Sketchfab/CallPointButton.glb", 0.085f, 1.4f, flip: true);
+            button.name = "Button";
+            var bell = WallPart(t, "Sketchfab/FireBell.glb", 0.15f, 1.4f + 0.0425f + 0.04f + 0.075f);
+            bell.name = "Bell";
             AddBoxCollider(root);
-            Sign(root.transform, "CallPoint", new Vector3(0f, 1.62f, -0.005f), 0.3f);
+            Sign(t, "CallPoint", new Vector3(0f, 1.8f, -0.005f), 0.3f);
             return root;
+        }
+
+        /// <summary>
+        /// A wall-mounted part on its own parent: largest extent <paramref name="size"/> m, thin axis along Z, centred
+        /// at <paramref name="centreY"/>, back face on the wall (z = 0).
+        /// </summary>
+        private static Transform WallPart(Transform root, string model, float size, float centreY, bool flip = false)
+        {
+            var holder = new GameObject("Part").transform;
+            holder.SetParent(root, false);
+            var m = Model(model, holder);
+            Fit(holder, m, size);
+            FaceFront(holder, m);
+            if (flip)
+                m.localRotation = Quaternion.Euler(0f, 180f, 0f) * m.localRotation;
+            var b = Bounds(holder);
+            m.localPosition += new Vector3(-b.center.x, centreY - b.center.y, -b.max.z);
+            return holder;
         }
 
         private static GameObject Detector()
