@@ -6,7 +6,7 @@ CC BY 4.0 items must be credited in the app's licence screen as "<model> by <aut
 | Folder / file | Used for | Source | Licence |
 | --- | --- | --- | --- |
 | `Extinguisher/` | `extinguisher.portable` | Poly Haven `korean_fire_extinguisher_01` — https://polyhaven.com/a/korean_fire_extinguisher_01 | CC0 |
-| `Sketchfab/CallPointMcp.glb` | `alarm.call_point` (push-button call point) | "Firebell & MCP" by yvesjotres — https://sketchfab.com/3d-models/477c51d6c7ea4a3a9fff737795f4979d | CC BY 4.0 |
+| `Sketchfab/CallPointButton.glb`, `FireBell.glb` | `alarm.call_point`: push button at 1.4 m with the bell above (split by `Tools/CallPointModel/split_call_point.py`) | "Firebell & MCP" by yvesjotres — https://sketchfab.com/3d-models/477c51d6c7ea4a3a9fff737795f4979d | CC BY 4.0 |
 | `Sketchfab/SmokeDetector.glb` | `alarm.detector` | "Simple smoke detector" by sousinho — https://sketchfab.com/3d-models/8db756d4c1564f3197f2415ec2ef7fec | CC BY 4.0 |
 | `Sketchfab/SprinklerPack.glb` | `suppression.sprinkler` (head only; the pack's red box is dropped) | "Fire alarm system Sprinkler" by tasha.kosaykina — https://sketchfab.com/3d-models/9416e1a971524b1a89b89cfcf7c2d33f | CC BY 4.0 |
 | `Sketchfab/ElevatorModern.glb` | `transport.elevator` (doors, frame, buttons; walls and cabin dropped) | "Simple Elevator with Animation" by lhaegy.fu — https://sketchfab.com/3d-models/770488a2f94a453fb90a7445bda63cd0 | CC BY 4.0 |
