@@ -96,17 +96,22 @@ namespace Fire3D.Unity.Editor.ContentPipeline
         {
             // Sketchfab "Firebell & MCP" by yvesjotres (CC BY), split into its bell and push button by
             // Tools/CallPointModel/split_call_point.py. Mounted as one unit the way Vietnamese buildings do it: the
-            // 8.5 cm push button centred 1.4 m above the floor, the 15 cm bell right above it, the sign on top. Front
-            // towards -Z, the wall behind at z = 0.
+            // 8.5 cm push button centred 1.4 m above the floor with its sign above it, and the 15 cm bell high on the
+            // same wall, just under the ceiling (CeilingMount finds the ceiling in game; 2.5 m until then). Front
+            // towards -Z, the wall behind at z = 0. Only the button is the tap target.
             var root = new GameObject(Capabilities.AlarmCallPoint);
             var t = root.transform;
             // The split button looks at the wall: turn its glass window to the room.
             var button = WallPart(t, "Sketchfab/CallPointButton.glb", 0.085f, 1.4f, flip: true);
             button.name = "Button";
-            var bell = WallPart(t, "Sketchfab/FireBell.glb", 0.15f, 1.4f + 0.0425f + 0.04f + 0.075f);
+            var b = Bounds(button);
+            var box = root.AddComponent<BoxCollider>();
+            box.center = b.center;
+            box.size = b.size + new Vector3(0.04f, 0.04f, 0.02f);
+            Sign(t, "CallPoint", new Vector3(0f, 1.6f, -0.005f), 0.3f);
+            var bell = WallPart(t, "Sketchfab/FireBell.glb", 0.15f, 2.5f);
             bell.name = "Bell";
-            AddBoxCollider(root);
-            Sign(t, "CallPoint", new Vector3(0f, 1.8f, -0.005f), 0.3f);
+            bell.gameObject.AddComponent<Fire3D.Unity.Presentation.CeilingMount>();
             return root;
         }
 
