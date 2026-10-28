@@ -21,6 +21,9 @@ namespace Fire3D.Unity
         public ScenarioState Scenario { get; }
         public PlayerMotor Player { get; set; }
         public PlayerVitals Vitals { get; set; }
+
+        /// <summary>Shared art (VFX prefabs, sounds); null in tests that build no world.</summary>
+        public Content.RuntimeAssets Assets { get; set; }
         public Func<double> Elapsed { get; }
 
         /// <summary>Short on-screen message (HUD toast).</summary>

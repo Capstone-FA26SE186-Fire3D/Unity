@@ -50,6 +50,34 @@ namespace Fire3D.Unity.Content
         /// <summary>Sky seen through windows (Skybox/Panoramic material); null keeps the camera's solid background.</summary>
         public Material Sky;
 
+        /// <summary>Night-time sky, used when the scenario text says it plays at night ("ban đêm", "night").</summary>
+        public Material SkyNight;
+
+        /// <summary>Burn mark projected on the floor under a fire (URP decal material); null draws no scorch.</summary>
+        public Material ScorchDecal;
+
+        /// <summary>
+        /// Prefab for <paramref name="capability"/>; a belongings bait picks the look its label names (backpack, phone)
+        /// from the "capability:variant" entries, otherwise the plain entry.
+        /// </summary>
+        public GameObject PrefabFor(string capability, string label)
+        {
+            var variant = BaitVariant(label);
+            return (variant != null ? PrefabFor($"{capability}:{variant}") : null) ?? PrefabFor(capability);
+        }
+
+        private static string BaitVariant(string label)
+        {
+            if (string.IsNullOrEmpty(label))
+                return null;
+            var l = label.ToLowerInvariant();
+            if (l.Contains("ba lô") || l.Contains("balo") || l.Contains("backpack") || l.Contains("cặp"))
+                return "backpack";
+            if (l.Contains("điện thoại") || l.Contains("phone"))
+                return "phone";
+            return null;
+        }
+
         /// <summary>Gameplay sound effects (Art/Audio); any clip may be missing, the game then stays silent for it.</summary>
         [Serializable]
         public sealed class SoundSet
@@ -70,6 +98,9 @@ namespace Fire3D.Unity.Content
             public AudioClip Cough;
             public AudioClip ElevatorDing;
             public AudioClip PowerCut;
+
+            /// <summary>Smoke detector chirp, looped on a triggered detector.</summary>
+            public AudioClip DetectorBeep;
             public AudioClip UiClick;
             public AudioClip UiSuccess;
             public AudioClip UiError;

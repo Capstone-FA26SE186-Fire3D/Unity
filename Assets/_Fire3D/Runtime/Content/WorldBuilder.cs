@@ -367,7 +367,7 @@ namespace Fire3D.Unity.Content
             }
             else
             {
-                var prefab = _assets != null ? _assets.PrefabFor(capability) : null;
+                var prefab = _assets != null ? _assets.PrefabFor(capability, obj.Label) : null;
                 go = prefab != null ? Object.Instantiate(prefab, world.Root) : PrototypeFactory.Create(capability);
                 go.transform.SetParent(world.Root, true);
                 go.transform.SetPositionAndRotation(WorldPosition(obj.Placement), WorldRotation(obj.Placement));

@@ -18,6 +18,13 @@ Assigned to `RuntimeAssets.Sounds` by `EquipmentPrefabBuilder`. Freesound files 
 | FireLarge.mp3 | Freesound 483323 by craigsmith | CC0 |
 | Sparks.wav | Loudest 2.5 s of Freesound 522690 by julianmateo_, cut by EquipmentPrefabBuilder | CC0 |
 | Footstep0-4.ogg | Kenney Impact Sounds (footstep_concrete) | CC0 |
-| ElevatorDing.ogg | Kenney Impact Sounds (impactBell_heavy_000) | CC0 |
 | UiClick.ogg, UiSuccess.ogg, UiError.ogg | Kenney Interface Sounds | CC0 |
-| ExtinguisherPin.wav, CallPointPress.wav, SprinklerSpray.wav, PowerCut.wav, Crawl0-2.wav | Synthesised by `Tools/AudioSynth/generate.py` (project-owned) | Project |
+| ExtinguisherPin.mp3 | Pixabay 43270 "Fire Extinguisher pin fall" by freesound_community | Pixabay Content License |
+| CallPointPress.mp3 | Pixabay 382713 "Button Press" by dragon-studio | Pixabay Content License |
+| SprinklerSpray.mp3 | Pixabay 397390 "Water in the shower" by nokono | Pixabay Content License |
+| PowerCut.mp3 | Pixabay 101047 "power cut" by freesound_community | Pixabay Content License |
+| ElevatorDing.mp3 | Pixabay 38520 "Elevator ding at Arenco Tower" by freesound_community | Pixabay Content License |
+| DetectorBeep.mp3 | Pixabay 90594 "Smoke Detector" by freesound_community | Pixabay Content License |
+| Crawl0-2.wav | Loudest 1.4 s windows of Pixabay 70986 "Crawling on a wooden floor" by freesound_community, cut by EquipmentPrefabBuilder | Pixabay Content License |
+
+Every clip is a recording; nothing is synthesised in code.

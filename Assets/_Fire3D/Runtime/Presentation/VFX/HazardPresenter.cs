@@ -97,6 +97,7 @@ namespace Fire3D.Unity.Presentation
 
             EnsureVolumeSmoke();
             AssignLights();
+            UpdateScorch();
         }
 
         private void Assign(List<ParticleSystem> pool, int max, List<(float score, int cell)> cells, bool fire)
@@ -212,6 +213,37 @@ namespace Fire3D.Unity.Presentation
 
         private readonly List<int> _lightSource = new();
         private readonly List<float> _lightPhase = new();
+
+        /// <summary>Burn mark under each fire: a floor decal that grows while the fire burns (URP Decal feature).</summary>
+        private readonly Dictionary<ParticleSystem, (UnityEngine.Rendering.Universal.DecalProjector decal, float since)> _scorch = new();
+
+        private void UpdateScorch()
+        {
+            var material = _assets != null ? _assets.ScorchDecal : null;
+            if (material == null)
+                return;
+            foreach (var fire in _fires)
+            {
+                if (!fire.isEmitting)
+                    continue;
+                if (!_scorch.TryGetValue(fire, out var s))
+                {
+                    var go = new GameObject("Scorch");
+                    go.transform.SetParent(transform, false);
+                    go.transform.SetPositionAndRotation(fire.transform.position + Vector3.up * 0.3f, Quaternion.Euler(90f, UnityEngine.Random.Range(0f, 360f), 0f));
+                    var decal = go.AddComponent<UnityEngine.Rendering.Universal.DecalProjector>();
+                    decal.material = material;
+                    decal.pivot = new Vector3(0f, 0f, 0.3f);
+                    decal.drawDistance = 40f;
+                    s = (decal, Time.time);
+                    _scorch[fire] = s;
+                }
+
+                // 0.5 m at ignition, 1.6 m after 40 s of burning; the mark stays once the fire is out.
+                var d = Mathf.Lerp(0.5f, 1.6f, Mathf.Clamp01((Time.time - s.since) / 40f));
+                s.decal.size = new Vector3(d, d, 0.6f);
+            }
+        }
 
         private void AssignLights()
         {

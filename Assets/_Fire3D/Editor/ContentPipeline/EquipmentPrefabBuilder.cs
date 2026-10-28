@@ -32,8 +32,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             Directory.CreateDirectory(PrefabDir);
             Directory.CreateDirectory(MaterialDir);
             ImportTextures();
-            TrimLoudest($"{AudioDir}/Source/ElectricSparks.mp3", "Sparks", 2.5f);
+            CutLoudest($"{AudioDir}/Source/ElectricSparks.mp3", "Sparks", 2.5f, 1);
+            CutLoudest($"{AudioDir}/Source/CrawlWoodFloor.mp3", "Crawl", 1.4f, 3);
             ImportAudio();
+            RenderSetup.EnsureDecals();
 
             var assets = AssetDatabase.LoadAssetAtPath<RuntimeAssets>(RuntimeAssetsBuilder.AssetPath);
             if (assets == null)
@@ -50,6 +52,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 [Capabilities.WaterShower] = Save(Fixture(Capabilities.WaterShower, "Bathroom/shower.glb", height: 2.1f)),
                 [Capabilities.ItemTowel] = Save(Towel()),
                 [Capabilities.BaitBelongings] = Save(Belongings()),
+                [Capabilities.BaitBelongings + ":backpack"] = Save(Bait("backpack", "Sketchfab/Backpack.glb", height: 0.45f), "bait.belongings.backpack"),
+                [Capabilities.BaitBelongings + ":phone"] = Save(Bait("phone", "Sketchfab/Smartphone.glb", length: 0.155f, flat: true), "bait.belongings.phone"),
                 [Capabilities.Elevator] = Save(Elevator()),
             };
 
@@ -64,7 +68,11 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 assets.Interactables.Add(new RuntimeAssets.CapabilityPrefab { Capability = kv.Key, Prefab = kv.Value });
 
             AssignSounds(assets);
-            assets.Sky = SkyMaterial();
+            assets.Sky = SkyMaterial("urban_street_01_2k.hdr", "StreetDay", 0.85f);
+            assets.SkyNight = SkyMaterial("modern_buildings_night_2k.hdr", "StreetNight", 1.1f);
+            assets.ScorchDecal = ScorchMaterial();
+            assets.SprinklerPrefab = SaveParticles(Fire3D.Unity.Presentation.VfxFactory.Droplets(null, Vfx("Droplet")), $"{PrefabDir}/SprinklerSpray.prefab");
+            assets.SprayPrefab = SaveParticles(Fire3D.Unity.Presentation.VfxFactory.Powder(null, Vfx("Powder")), $"{PrefabDir}/ExtinguisherPowder.prefab");
             EditorUtility.SetDirty(assets);
             AssetDatabase.SaveAssets();
             Debug.Log($"[Fire3D] Equipment prefabs built in {PrefabDir}");
@@ -86,10 +94,13 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
         private static GameObject CallPoint()
         {
-            // Poly Haven fire_alarm (CC0): a red manual call point on the wall, centre 1.4 m above the floor.
+            // Sketchfab "Firebell & MCP" by yvesjotres (CC BY): the square push-button call point used in Vietnam,
+            // centre 1.4 m above the floor, face towards -Z (the wall is behind it at z = 0).
             var root = new GameObject(Capabilities.AlarmCallPoint);
-            var model = Model("CallPoint/fire_alarm_1k.gltf", root.transform);
-            model.localRotation = Quaternion.Euler(0f, 180f, 0f); // its face looks along +Z
+            // The pack is a bell beside the push button, 30 cm across together.
+            var model = Model("Sketchfab/CallPointMcp.glb", root.transform);
+            Fit(root.transform, model, 0.3f);
+            FaceFront(root.transform, model);
             var b = Bounds(root.transform);
             model.localPosition += new Vector3(-b.center.x, 1.4f - b.center.y, -b.max.z);
             AddBoxCollider(root);
@@ -99,40 +110,23 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
         private static GameObject Detector()
         {
+            // Sketchfab "Simple smoke detector" by sousinho (CC BY): 12 cm disc hanging under the ceiling gap.
             var root = new GameObject(Capabilities.AlarmDetector);
-            var t = root.transform;
-            var white = Mat("DetectorPlastic", new Color(0.93f, 0.93f, 0.9f), 0.45f);
-            Part(PrimitiveType.Cylinder, "Base", t, new Vector3(0f, CeilingGap - 0.006f, 0f), new Vector3(0.12f, 0.006f, 0.12f), white);
-            Part(PrimitiveType.Cylinder, "Body", t, new Vector3(0f, CeilingGap - 0.024f, 0f), new Vector3(0.1f, 0.012f, 0.1f), white);
-            Part(PrimitiveType.Sphere, "Dome", t, new Vector3(0f, CeilingGap - 0.036f, 0f), new Vector3(0.07f, 0.018f, 0.07f), white);
-            // Slots around the chamber and the status LED.
-            var slot = Mat("DetectorSlot", new Color(0.35f, 0.36f, 0.36f), 0.2f);
-            for (var i = 0; i < 12; i++)
-            {
-                var a = i * Mathf.PI * 2f / 12f;
-                var s = Part(PrimitiveType.Cube, "Slot", t, new Vector3(Mathf.Cos(a) * 0.05f, CeilingGap - 0.024f, Mathf.Sin(a) * 0.05f),
-                    new Vector3(0.012f, 0.014f, 0.004f), slot);
-                s.transform.localRotation = Quaternion.Euler(0f, -a * Mathf.Rad2Deg + 90f, 0f);
-            }
-
-            Part(PrimitiveType.Sphere, "Led", t, new Vector3(0.03f, CeilingGap - 0.032f, 0.03f), Vector3.one * 0.008f,
-                Mat("LedRed", new Color(0.8f, 0.05f, 0.03f), 0.8f, emission: new Color(1.5f, 0.1f, 0.05f)));
+            var model = Model("Sketchfab/SmokeDetector.glb", root.transform);
+            HangFromCeiling(root.transform, model, 0.12f);
             return root;
         }
 
         private static GameObject Sprinkler()
         {
+            // Sketchfab "Fire alarm system Sprinkler" by tasha.kosaykina (CC BY) ships a sprinkler head and a red
+            // break-glass box; only the head is kept (its material name says "sprinkler"), 9 cm tall, pendent.
             var root = new GameObject(Capabilities.Sprinkler);
-            var t = root.transform;
-            var brass = Mat("Brass", new Color(0.78f, 0.6f, 0.3f), 0.75f, metallic: 1f);
-            var chrome = Mat("Chrome", new Color(0.85f, 0.86f, 0.88f), 0.85f, metallic: 1f);
-            Part(PrimitiveType.Cylinder, "Escutcheon", t, new Vector3(0f, CeilingGap - 0.004f, 0f), new Vector3(0.07f, 0.004f, 0.07f), chrome);
-            Part(PrimitiveType.Cylinder, "Body", t, new Vector3(0f, CeilingGap - 0.02f, 0f), new Vector3(0.024f, 0.014f, 0.024f), brass);
-            foreach (var x in new[] { -0.011f, 0.011f })
-                Part(PrimitiveType.Cube, "Frame", t, new Vector3(x, CeilingGap - 0.05f, 0f), new Vector3(0.004f, 0.034f, 0.006f), brass);
-            Part(PrimitiveType.Capsule, "Bulb", t, new Vector3(0f, CeilingGap - 0.05f, 0f), new Vector3(0.006f, 0.011f, 0.006f),
-                Mat("BulbRed", new Color(0.9f, 0.08f, 0.05f, 0.75f), 0.95f));
-            Part(PrimitiveType.Cylinder, "Deflector", t, new Vector3(0f, CeilingGap - 0.069f, 0f), new Vector3(0.036f, 0.0015f, 0.036f), brass);
+            var model = Model("Sketchfab/SprinklerPack.glb", root.transform);
+            foreach (var r in model.GetComponentsInChildren<Renderer>())
+                if (r.sharedMaterial == null || !r.sharedMaterial.name.ToLowerInvariant().Contains("sprinkler"))
+                    Object.DestroyImmediate(r.gameObject);
+            HangFromCeiling(root.transform, model, 0f, height: 0.09f);
             return root;
         }
 
@@ -185,35 +179,54 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             return root;
         }
 
+        /// <summary>Another belongings bait (Sketchfab, CC BY): a backpack standing up or a phone lying flat.</summary>
+        private static GameObject Bait(string variant, string model, float height = 0f, float length = 0f, bool flat = false)
+        {
+            var root = new GameObject($"{Capabilities.BaitBelongings}.{variant}");
+            var m = Model(model, root.transform);
+            if (flat)
+                LayFlat(root.transform, m);
+            var b = Bounds(root.transform);
+            m.localScale *= height > 0f ? height / b.size.y : length / Mathf.Max(b.size.x, b.size.z);
+            StandOnPivot(root.transform, m);
+            AddBoxCollider(root);
+            return root;
+        }
+
         private static GameObject Elevator()
         {
             var root = new GameObject(Capabilities.Elevator);
             var t = root.transform;
-            var steel = TexturedMat("BrushedSteel", "BrushedSteel", 0.62f, metallic: 1f, tiling: 1f);
+            // Sketchfab "Simple Elevator with Animation" by lhaegy.fu (CC BY): stainless door leaves, frame, floor
+            // indicator and call buttons; the model's walls, cabin, mirror and floor are dropped. Scaled to a 2.25 m
+            // frame, standing on the floor, back face at z = 0, front towards -Z.
+            var doors = Model("Sketchfab/ElevatorModern.glb", t);
+            // The model's own call buttons sit on the wrong side and a second plate floats above the frame: drop
+            // them and fit one up/down panel to the right of the doors below.
+            Strip(doors, "Wall", "Cage", "Mirror", "Floor", "Plane", "CallingButtons");
+            FaceFront(t, doors);
+            var db = Bounds(t);
+            doors.localScale *= 2.25f / db.size.y;
+            db = Bounds(t);
+            doors.localPosition += new Vector3(-db.center.x, -db.min.y, -db.max.z);
+            db = Bounds(t);
             var frame = Mat("ElevatorFrame", new Color(0.32f, 0.33f, 0.35f), 0.55f, metallic: 0.8f);
-            foreach (var x in new[] { -0.61f, 0.61f })
-                Part(PrimitiveType.Cube, "Jamb", t, new Vector3(x, 1.125f, -0.01f), new Vector3(0.12f, 2.25f, 0.12f), frame);
-            Part(PrimitiveType.Cube, "Head", t, new Vector3(0f, 2.175f, -0.01f), new Vector3(1.34f, 0.15f, 0.12f), frame);
-            foreach (var x in new[] { -0.2775f, 0.2775f })
-                Part(PrimitiveType.Cube, "Leaf", t, new Vector3(x, 1.05f, 0f), new Vector3(0.545f, 2.1f, 0.04f), steel);
-            Part(PrimitiveType.Cube, "Sill", t, new Vector3(0f, 0.005f, -0.06f), new Vector3(1.1f, 0.01f, 0.1f), frame);
-            // Floor indicator above the doors.
-            Part(PrimitiveType.Cube, "Indicator", t, new Vector3(0f, 2.36f, -0.03f), new Vector3(0.32f, 0.09f, 0.03f), Mat("IndicatorGlass", new Color(0.04f, 0.04f, 0.05f), 0.9f));
-            Part(PrimitiveType.Cube, "IndicatorDigits", t, new Vector3(0f, 2.36f, -0.046f), new Vector3(0.12f, 0.05f, 0.002f),
-                Mat("IndicatorRed", new Color(0.9f, 0.1f, 0.05f), 0.6f, emission: new Color(2f, 0.15f, 0.05f)));
-            // Call panel with up/down buttons.
-            Part(PrimitiveType.Cube, "Panel", t, new Vector3(0.82f, 1.1f, -0.01f), new Vector3(0.1f, 0.22f, 0.015f), steel);
+            Part(PrimitiveType.Cube, "Sill", t, new Vector3(0f, 0.005f, -0.06f), new Vector3(db.size.x * 0.8f, 0.01f, 0.1f), frame);
+            // Call panel: brushed plate with up/down buttons, 1.1 m high, 20 cm right of the frame.
+            var panelX = db.max.x + 0.2f;
+            var steel = AssetDatabase.LoadAssetAtPath<Material>($"{MaterialLibraryBuilder.MaterialsDir}/metal.stainless.mat");
+            Part(PrimitiveType.Cube, "CallPanel", t, new Vector3(panelX, 1.1f, -0.008f), new Vector3(0.09f, 0.2f, 0.012f), steel);
             var lit = Mat("ButtonLit", new Color(0.95f, 0.9f, 0.7f), 0.7f, emission: new Color(1.2f, 1.05f, 0.7f));
             foreach (var y in new[] { 1.15f, 1.05f })
             {
-                var b = Part(PrimitiveType.Cylinder, "Button", t, new Vector3(0.82f, y, -0.02f), new Vector3(0.035f, 0.005f, 0.035f), lit);
-                b.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+                var button = Part(PrimitiveType.Cylinder, "CallButton", t, new Vector3(panelX, y, -0.016f), new Vector3(0.032f, 0.004f, 0.032f), lit);
+                button.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
             }
 
-            Sign(t, "NoLift", new Vector3(0.82f, 1.5f, -0.02f), 0.36f);
+            Sign(t, "NoLift", new Vector3(panelX + 0.05f, 1.55f, -0.02f), 0.36f);
             var box = root.AddComponent<BoxCollider>();
-            box.center = new Vector3(0f, 1.125f, 0f);
-            box.size = new Vector3(1.34f, 2.25f, 0.12f);
+            box.center = new Vector3(0f, db.size.y * 0.5f, db.center.z);
+            box.size = new Vector3(db.size.x, db.size.y, Mathf.Max(0.12f, db.size.z));
             return root;
         }
 
@@ -339,6 +352,111 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             model.localPosition += new Vector3(-b.center.x, -b.min.y, -b.center.z);
         }
 
+        /// <summary>Scales the model so its largest extent is <paramref name="size"/> metres.</summary>
+        private static void Fit(Transform root, Transform model, float size)
+        {
+            var b = Bounds(root);
+            model.localScale *= size / Mathf.Max(b.size.x, b.size.y, b.size.z);
+        }
+
+        /// <summary>
+        /// Wall items face -Z in prefabs. Sketchfab models arrive in every orientation: the thinnest axis is the
+        /// depth, so turn that axis to Z; a model whose face looks at +Z is flipped by the visual check afterwards.
+        /// </summary>
+        private static void FaceFront(Transform root, Transform model)
+        {
+            var b = Bounds(root);
+            if (b.size.x < b.size.z && b.size.x < b.size.y)
+                model.localRotation = Quaternion.Euler(0f, 90f, 0f) * model.localRotation;
+            else if (b.size.y < b.size.x && b.size.y < b.size.z)
+                model.localRotation = Quaternion.Euler(-90f, 0f, 0f) * model.localRotation;
+        }
+
+        /// <summary>Lays a slab-like model on its largest face (a phone on a table).</summary>
+        private static void LayFlat(Transform root, Transform model)
+        {
+            var b = Bounds(root);
+            if (b.size.y > b.size.x || b.size.y > b.size.z)
+                model.localRotation = Quaternion.Euler(90f, 0f, 0f) * model.localRotation;
+            b = Bounds(root);
+            if (b.size.y > b.size.x || b.size.y > b.size.z)
+                model.localRotation = Quaternion.Euler(0f, 0f, 90f) * model.localRotation;
+        }
+
+        /// <summary>Ceiling devices: disc down (flat axis vertical), top at the ceiling gap, scaled by diameter or height.</summary>
+        private static void HangFromCeiling(Transform root, Transform model, float diameter, float height = 0f)
+        {
+            var b = Bounds(root);
+            if (height <= 0f)
+            {
+                // The flat axis of a disc is its thinnest one; make it vertical.
+                if (b.size.x < b.size.y && b.size.x < b.size.z)
+                    model.localRotation = Quaternion.Euler(0f, 0f, 90f) * model.localRotation;
+                else if (b.size.z < b.size.y && b.size.z < b.size.x)
+                    model.localRotation = Quaternion.Euler(90f, 0f, 0f) * model.localRotation;
+            }
+            else if (b.size.y < b.size.x || b.size.y < b.size.z)
+            {
+                // A pendent head is taller than wide.
+                model.localRotation = (b.size.x > b.size.z ? Quaternion.Euler(0f, 0f, 90f) : Quaternion.Euler(90f, 0f, 0f)) * model.localRotation;
+            }
+
+            b = Bounds(root);
+            model.localScale *= height > 0f ? height / b.size.y : diameter / Mathf.Max(b.size.x, b.size.z);
+            b = Bounds(root);
+            model.localPosition += new Vector3(-b.center.x, CeilingGap - b.max.y, -b.center.z);
+            AddBoxCollider(root.gameObject);
+        }
+
+        /// <summary>Removes every node whose name contains one of <paramref name="names"/> (walls, cabins shipped with a model).</summary>
+        private static void Strip(Transform model, params string[] names)
+        {
+            foreach (var t in model.GetComponentsInChildren<Transform>(true).ToArray())
+            {
+                if (t == null || t == model)
+                    continue;
+                foreach (var n in names)
+                    if (t.name.Contains(n))
+                    {
+                        Object.DestroyImmediate(t.gameObject);
+                        break;
+                    }
+            }
+        }
+
+        private static Texture2D Vfx(string name) => AssetDatabase.LoadAssetAtPath<Texture2D>($"{Art}/VFX/{name}.png");
+
+        private static ParticleSystem SaveParticles(ParticleSystem ps, string path)
+        {
+            var go = ps.gameObject;
+            RuntimeAssetsBuilder.PersistMaterials(go);
+            PrefabUtility.SaveAsPrefabAsset(go, path);
+            Object.DestroyImmediate(go);
+            AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceUpdate);
+            return AssetDatabase.LoadAssetAtPath<GameObject>(path).GetComponent<ParticleSystem>();
+        }
+
+        /// <summary>Burn mark decal (Kenney particle pack scorch, CC0) on the URP decal shader.</summary>
+        private static Material ScorchMaterial()
+        {
+            var shader = Shader.Find("Shader Graphs/Decal");
+            var tex = Vfx("Scorch");
+            if (shader == null || tex == null)
+                return null;
+            const string path = Art + "/VFX/Scorch.mat";
+            var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
+            if (mat == null)
+            {
+                mat = new Material(shader) { name = "Scorch" };
+                AssetDatabase.CreateAsset(mat, path);
+            }
+
+            mat.SetTexture("Base_Map", tex);
+            mat.SetFloat("Normal_Blend", 0f);
+            EditorUtility.SetDirty(mat);
+            return mat;
+        }
+
         private static void AddBoxCollider(GameObject root)
         {
             var b = Bounds(root.transform);
@@ -445,9 +563,9 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             return mat;
         }
 
-        private static GameObject Save(GameObject instance)
+        private static GameObject Save(GameObject instance, string fileName = null)
         {
-            var path = $"{PrefabDir}/{instance.name}.prefab";
+            var path = $"{PrefabDir}/{fileName ?? instance.name}.prefab";
             var prefab = PrefabUtility.SaveAsPrefabAsset(instance, path);
             Object.DestroyImmediate(instance);
             return prefab;
@@ -455,13 +573,15 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
         private static void ImportTextures()
         {
-            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { $"{EquipmentArt}/Textures", $"{Art}/Signs" }))
+            foreach (var guid in AssetDatabase.FindAssets("t:Texture2D", new[] { $"{EquipmentArt}/Textures", $"{Art}/Signs", $"{Art}/VFX" }))
             {
                 var path = AssetDatabase.GUIDToAssetPath(guid);
                 if (AssetImporter.GetAtPath(path) is not TextureImporter importer)
                     continue;
+                if (path.Contains("/VFX/") && !(path.EndsWith("/Scorch.png") || path.EndsWith("/Powder.png") || path.EndsWith("/Droplet.png")))
+                    continue;
                 var normal = path.Contains("_NormalGL");
-                var sign = path.Contains("/Signs/");
+                var sign = path.Contains("/Signs/") || path.Contains("/VFX/");
                 var changed = importer.textureType != (normal ? TextureImporterType.NormalMap : TextureImporterType.Default)
                               || importer.maxTextureSize != (sign ? 512 : 1024);
                 if (!changed)
@@ -474,10 +594,10 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
         }
 
-        /// <summary>Poly Haven urban_street_01 (CC0) as a panoramic sky, seen only through windows.</summary>
-        private static Material SkyMaterial()
+        /// <summary>A Poly Haven HDRI (CC0) as a panoramic sky, seen only through windows.</summary>
+        private static Material SkyMaterial(string file, string name, float exposure)
         {
-            const string hdr = Art + "/Sky/urban_street_01_2k.hdr";
+            var hdr = $"{Art}/Sky/{file}";
             if (AssetImporter.GetAtPath(hdr) is TextureImporter importer && (importer.maxTextureSize != 2048 || importer.mipmapEnabled))
             {
                 importer.maxTextureSize = 2048;
@@ -490,7 +610,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var texture = AssetDatabase.LoadAssetAtPath<Texture2D>(hdr);
             if (texture == null)
                 return null;
-            const string path = Art + "/Sky/StreetDay.mat";
+            var path = $"{Art}/Sky/{name}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
             {
@@ -499,17 +619,18 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
 
             mat.SetTexture("_MainTex", texture);
-            mat.SetFloat("_Exposure", 0.85f);
+            mat.SetFloat("_Exposure", exposure);
             mat.SetFloat("_Mapping", 1f); // latitude-longitude
             EditorUtility.SetDirty(mat);
             return mat;
         }
 
         /// <summary>
-        /// Cuts the loudest <paramref name="seconds"/> of a long recording into Art/Audio/<paramref name="name"/>.wav
-        /// (mono, 5 ms fades). Skipped when the source is not in the project (it is removed after the first cut).
+        /// Cuts the <paramref name="count"/> loudest, non-overlapping <paramref name="seconds"/> of a recording into
+        /// Art/Audio/<paramref name="name"/>.wav (or name0..N-1, mono, 5 ms fades). Skipped when the source is not in
+        /// the project: the source file is removed after the first cut.
         /// </summary>
-        private static void TrimLoudest(string sourcePath, string name, float seconds)
+        private static void CutLoudest(string sourcePath, string name, float seconds, int count)
         {
             if (AssetImporter.GetAtPath(sourcePath) is not AudioImporter importer)
                 return;
@@ -530,46 +651,71 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                 mono[i] = sum / clip.channels;
             }
 
-            // Sliding window of squared samples: the start with the most energy.
+            // Sliding window of squared samples; the window with the most energy wins, then its span is masked and
+            // the next one is taken.
             var window = Mathf.Min(mono.Length, Mathf.RoundToInt(seconds * clip.frequency));
-            double energy = 0, best = -1;
-            var bestStart = 0;
+            var prefix = new double[mono.Length + 1];
             for (var i = 0; i < mono.Length; i++)
+                prefix[i + 1] = prefix[i] + mono[i] * mono[i];
+            var taken = new List<int>();
+            for (var n = 0; n < count; n++)
             {
-                energy += mono[i] * mono[i];
-                if (i >= window)
-                    energy -= mono[i - window] * mono[i - window];
-                if (i >= window - 1 && energy > best)
-                    (best, bestStart) = (energy, i - window + 1);
-            }
-
-            var fade = clip.frequency / 200;
-            var outPath = $"{AudioDir}/{name}.wav";
-            using (var stream = new FileStream(outPath, FileMode.Create))
-            using (var w = new BinaryWriter(stream))
-            {
-                w.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-                w.Write(36 + window * 2);
-                w.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
-                w.Write(16);
-                w.Write((short)1);
-                w.Write((short)1);
-                w.Write(clip.frequency);
-                w.Write(clip.frequency * 2);
-                w.Write((short)2);
-                w.Write((short)16);
-                w.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-                w.Write(window * 2);
-                for (var i = 0; i < window; i++)
+                double best = -1;
+                var bestStart = -1;
+                for (var start = 0; start + window <= mono.Length; start++)
                 {
-                    var g = Mathf.Min(1f, Mathf.Min(i, window - 1 - i) / (float)fade);
-                    w.Write((short)Mathf.Clamp(mono[bestStart + i] * g * 32767f, -32768f, 32767f));
+                    var overlaps = false;
+                    foreach (var t in taken)
+                        if (start < t + window && t < start + window)
+                            overlaps = true;
+                    if (overlaps)
+                        continue;
+                    var energy = prefix[start + window] - prefix[start];
+                    if (energy > best)
+                        (best, bestStart) = (energy, start);
                 }
+
+                if (bestStart < 0)
+                    break;
+                taken.Add(bestStart);
             }
 
-            AssetDatabase.ImportAsset(outPath);
-            Debug.Log($"[Fire3D] {name}.wav: {seconds:F1} s from {bestStart / (float)clip.frequency:F1} s of {Path.GetFileName(sourcePath)}");
-            AssetDatabase.DeleteAsset(Path.GetDirectoryName(sourcePath)!.Replace('\\', '/'));
+            taken.Sort();
+            var fade = clip.frequency / 200;
+            for (var n = 0; n < taken.Count; n++)
+            {
+                var bestStart = taken[n];
+                var outPath = $"{AudioDir}/{name}{(count > 1 ? n.ToString() : "")}.wav";
+                using (var stream = new FileStream(outPath, FileMode.Create))
+                using (var w = new BinaryWriter(stream))
+                {
+                    w.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
+                    w.Write(36 + window * 2);
+                    w.Write(System.Text.Encoding.ASCII.GetBytes("WAVEfmt "));
+                    w.Write(16);
+                    w.Write((short)1);
+                    w.Write((short)1);
+                    w.Write(clip.frequency);
+                    w.Write(clip.frequency * 2);
+                    w.Write((short)2);
+                    w.Write((short)16);
+                    w.Write(System.Text.Encoding.ASCII.GetBytes("data"));
+                    w.Write(window * 2);
+                    for (var i = 0; i < window; i++)
+                    {
+                        var g = Mathf.Min(1f, Mathf.Min(i, window - 1 - i) / (float)fade);
+                        w.Write((short)Mathf.Clamp(mono[bestStart + i] * g * 32767f, -32768f, 32767f));
+                    }
+                }
+
+                AssetDatabase.ImportAsset(outPath);
+                Debug.Log($"[Fire3D] {Path.GetFileName(outPath)}: {seconds:F1} s from {bestStart / (float)clip.frequency:F1} s of {Path.GetFileName(sourcePath)}");
+            }
+
+            AssetDatabase.DeleteAsset(sourcePath);
+            var folder = Path.GetDirectoryName(sourcePath)!.Replace('\\', '/');
+            if (AssetDatabase.FindAssets("", new[] { folder }).Length == 0)
+                AssetDatabase.DeleteAsset(folder);
         }
 
         /// <summary>Mobile audio: Vorbis, mono for positional sounds, long recordings kept compressed in memory.</summary>
@@ -623,6 +769,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             s.Cough = Clip("Cough");
             s.ElevatorDing = Clip("ElevatorDing");
             s.PowerCut = Clip("PowerCut");
+            s.DetectorBeep = Clip("DetectorBeep");
             s.UiClick = Clip("UiClick");
             s.UiSuccess = Clip("UiSuccess");
             s.UiError = Clip("UiError");

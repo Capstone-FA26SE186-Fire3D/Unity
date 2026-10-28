@@ -44,6 +44,7 @@ namespace Fire3D.Unity.Gameplay.Interactions
         [SerializeField] private float autoLeaveMeters = 0.6f;
         private AudioSource _sprayAudio;
         private float _sprayStart;
+        private ParticleSystem _sprayFx;
         private float _dischargeLeft;
         private bool _largeFireReported;
 
@@ -597,12 +598,30 @@ namespace Fire3D.Unity.Gameplay.Interactions
                 _sprayAudio = GameAudio.Loop(GameAudio.Sounds?.ExtinguisherSpray, _held.gameObject, 0.7f);
             if (_sprayAudio != null)
                 _sprayAudio.Play();
+            // Powder cloud from the nozzle, blown the way the player faces.
+            if (_sprayFx == null && Ctx.Assets != null && Ctx.Assets.SprayPrefab != null)
+                _sprayFx = Instantiate(Ctx.Assets.SprayPrefab, _held.transform);
+            if (_sprayFx != null)
+            {
+                AimSpray();
+                _sprayFx.Play(true);
+            }
+        }
+
+        private void AimSpray()
+        {
+            if (_sprayFx == null || _held == null)
+                return;
+            var r = _held.GetComponentInChildren<Renderer>();
+            var from = r != null ? r.bounds.center + Vector3.up * 0.1f : _held.transform.position;
+            _sprayFx.transform.SetPositionAndRotation(from + transform.forward * 0.25f, Quaternion.LookRotation(transform.forward + Vector3.down * 0.25f));
         }
 
         private void TickSpray(GameContext ctx)
         {
             if (!_sprayActive)
                 return;
+            AimSpray();
             _dischargeLeft -= Time.deltaTime;
             if (_dischargeLeft <= 0f)
             {
@@ -662,6 +681,8 @@ namespace Fire3D.Unity.Gameplay.Interactions
             _sprayActive = false;
             if (_sprayAudio != null)
                 _sprayAudio.Stop();
+            if (_sprayFx != null)
+                _sprayFx.Stop(true, ParticleSystemStopBehavior.StopEmitting);
             var duration = Mathf.Max(0f, Ctx.Time - _sprayStart);
             Ctx.Log.Emit(EventTypes.ExtinguisherUsed, new JObject { ["objectId"] = _held != null ? _held.ObjectId : "", ["durationSeconds"] = System.Math.Round(duration, 2) });
         }

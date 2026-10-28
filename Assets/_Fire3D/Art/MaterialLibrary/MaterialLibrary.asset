@@ -17,63 +17,115 @@ MonoBehaviour:
   - Key: ceiling.tile
     Material: {fileID: 2100000, guid: 33c61753eb989fa4690c7f08e96cb82b, type: 2}
     RepeatMeters: 1.2
+    Variants:
+    - {fileID: 2100000, guid: 33c61753eb989fa4690c7f08e96cb82b, type: 2}
+    - {fileID: 2100000, guid: f67733e42636ac140b9d774a89808d03, type: 2}
+    - {fileID: 2100000, guid: 6fb0d2c68e3555f4d83c7325a12e3ab2, type: 2}
   - Key: concrete
     Material: {fileID: 2100000, guid: ddad01059a0a99c469c06a2f0f82920b, type: 2}
     RepeatMeters: 2
+    Variants:
+    - {fileID: 2100000, guid: ddad01059a0a99c469c06a2f0f82920b, type: 2}
+    - {fileID: 2100000, guid: 77caa3bb940cb9b4daace04f19a460cd, type: 2}
+    - {fileID: 2100000, guid: 9500b97123896e04ab4d8762469ce9db, type: 2}
   - Key: floor.carpet
     Material: {fileID: 2100000, guid: 846c49a8e47e59a4fa8da52161bfc98a, type: 2}
     RepeatMeters: 1
+    Variants:
+    - {fileID: 2100000, guid: 846c49a8e47e59a4fa8da52161bfc98a, type: 2}
+    - {fileID: 2100000, guid: 8ad12ecc6ff2a3948aa602fcce4761e4, type: 2}
   - Key: floor.epoxy
     Material: {fileID: 2100000, guid: 83f1432d2d1c6704d8fb45f1a3c8d5af, type: 2}
     RepeatMeters: 2
+    Variants:
+    - {fileID: 2100000, guid: 83f1432d2d1c6704d8fb45f1a3c8d5af, type: 2}
   - Key: floor.rubber
     Material: {fileID: 2100000, guid: 732c4f711705e1f45b2e7abaee55bd7c, type: 2}
     RepeatMeters: 0.6
+    Variants:
+    - {fileID: 2100000, guid: 732c4f711705e1f45b2e7abaee55bd7c, type: 2}
   - Key: floor.terrazzo
     Material: {fileID: 2100000, guid: 9215f24ea1eb32f41a2ba70a15977eb9, type: 2}
     RepeatMeters: 1.2
+    Variants:
+    - {fileID: 2100000, guid: 9215f24ea1eb32f41a2ba70a15977eb9, type: 2}
   - Key: floor.tile
     Material: {fileID: 2100000, guid: 7cb5e381dac67cb469978a7e832ddd0d, type: 2}
     RepeatMeters: 1.2
+    Variants:
+    - {fileID: 2100000, guid: 7cb5e381dac67cb469978a7e832ddd0d, type: 2}
+    - {fileID: 2100000, guid: 01822d6273c2bd446a405004460f9bb6, type: 2}
   - Key: floor.vinyl
     Material: {fileID: 2100000, guid: e0976ea66c411d7449a7507fabf52a23, type: 2}
     RepeatMeters: 1
+    Variants:
+    - {fileID: 2100000, guid: e0976ea66c411d7449a7507fabf52a23, type: 2}
+    - {fileID: 2100000, guid: 087dfefa59330fc4a98af25b48c65c0a, type: 2}
+    - {fileID: 2100000, guid: a354552a5dcc142419a377b1db530f28, type: 2}
   - Key: floor.wood
     Material: {fileID: 2100000, guid: c3fc587f31ac5e24987f02e99485b9fa, type: 2}
     RepeatMeters: 2
+    Variants:
+    - {fileID: 2100000, guid: c3fc587f31ac5e24987f02e99485b9fa, type: 2}
+    - {fileID: 2100000, guid: 0a8255581843aed46adee310600bf928, type: 2}
+    - {fileID: 2100000, guid: 9dcb51fee0e3c1b4e9236ddc37c40371, type: 2}
   - Key: glass.clear
     Material: {fileID: 2100000, guid: 25fc9b7a7ae5a1d4f986b9ab30431ad4, type: 2}
     RepeatMeters: 1
+    Variants: []
   - Key: glass.frosted
     Material: {fileID: 2100000, guid: fb9e107069f6b694a852fe79a0ed34ca, type: 2}
     RepeatMeters: 1
+    Variants: []
   - Key: metal.brushed
     Material: {fileID: 2100000, guid: 32a24e694c3fc7b43ae338518afd6da2, type: 2}
     RepeatMeters: 0.5
+    Variants:
+    - {fileID: 2100000, guid: 32a24e694c3fc7b43ae338518afd6da2, type: 2}
   - Key: metal.painted
     Material: {fileID: 2100000, guid: 19b1e2c553332b24d82c48efa91fe1c3, type: 2}
     RepeatMeters: 1
+    Variants:
+    - {fileID: 2100000, guid: 19b1e2c553332b24d82c48efa91fe1c3, type: 2}
   - Key: metal.stainless
     Material: {fileID: 2100000, guid: 1dba3f0fdcf11a848bb408cde7679e69, type: 2}
     RepeatMeters: 0.5
+    Variants:
+    - {fileID: 2100000, guid: 1dba3f0fdcf11a848bb408cde7679e69, type: 2}
   - Key: stone
     Material: {fileID: 2100000, guid: ea6ded586751128428c4243bc6062868, type: 2}
     RepeatMeters: 1.5
+    Variants:
+    - {fileID: 2100000, guid: ea6ded586751128428c4243bc6062868, type: 2}
   - Key: wall.brick
     Material: {fileID: 2100000, guid: 84bbbeb1670f3b54c979aaaa1920eaf2, type: 2}
     RepeatMeters: 1.5
+    Variants:
+    - {fileID: 2100000, guid: 84bbbeb1670f3b54c979aaaa1920eaf2, type: 2}
+    - {fileID: 2100000, guid: 93b4fbe6cc9c005419f3c8858817eef2, type: 2}
   - Key: wall.paint
     Material: {fileID: 2100000, guid: 453b121fee3bed249bb22d5661908f10, type: 2}
     RepeatMeters: 2
+    Variants:
+    - {fileID: 2100000, guid: 453b121fee3bed249bb22d5661908f10, type: 2}
+    - {fileID: 2100000, guid: 37565daf1d9c29946afd971ce0e06d3e, type: 2}
   - Key: wall.plaster
     Material: {fileID: 2100000, guid: e5367d5d31542c342a1839212b565a0f, type: 2}
     RepeatMeters: 2
+    Variants:
+    - {fileID: 2100000, guid: e5367d5d31542c342a1839212b565a0f, type: 2}
   - Key: wall.tile
     Material: {fileID: 2100000, guid: 78a24d788e06e9d45962066261f48a63, type: 2}
     RepeatMeters: 1
+    Variants:
+    - {fileID: 2100000, guid: 78a24d788e06e9d45962066261f48a63, type: 2}
   - Key: wall.tile.white
     Material: {fileID: 2100000, guid: 12eaf51767e46044ba3baa6e0235227d, type: 2}
     RepeatMeters: 0.6
+    Variants:
+    - {fileID: 2100000, guid: 12eaf51767e46044ba3baa6e0235227d, type: 2}
   - Key: wood
     Material: {fileID: 2100000, guid: 3db011aa03d1b6d43bfbfed1b1826c03, type: 2}
     RepeatMeters: 1
+    Variants:
+    - {fileID: 2100000, guid: 3db011aa03d1b6d43bfbfed1b1826c03, type: 2}

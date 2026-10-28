@@ -48,6 +48,7 @@ namespace Fire3D.Unity.Tests.PlayModeTests
                          ("fire", s.FireLoop), ("door open", s.DoorOpen), ("door close", s.DoorClose), ("door touch", s.DoorTouch),
                          ("pin", s.ExtinguisherPin), ("spray", s.ExtinguisherSpray), ("sprinkler", s.SprinklerSpray), ("tap", s.TapRunning),
                          ("cough", s.Cough), ("elevator", s.ElevatorDing), ("power cut", s.PowerCut), ("success", s.UiSuccess), ("error", s.UiError),
+                         ("detector beep", s.DetectorBeep),
                      })
                 Assert.IsNotNull(clip, $"sound '{name}' not assigned");
             Assert.GreaterOrEqual(s.Footsteps.Count, 2, "footsteps");
@@ -60,6 +61,22 @@ namespace Fire3D.Unity.Tests.PlayModeTests
             Assert.IsNotNull(s.Sparks, "sparks");
             Assert.GreaterOrEqual(s.Panting.Count, 1, "panting");
             Assert.IsNotNull(assets.Sky, "sky");
+            Assert.IsNotNull(assets.SkyNight, "night sky");
+            Assert.IsNotNull(assets.ScorchDecal, "scorch decal");
+            Assert.IsNotNull(assets.SprinklerPrefab, "sprinkler spray prefab");
+            Assert.IsNotNull(assets.SprayPrefab, "extinguisher powder prefab");
+            // Recorded sounds only: nothing synthesised in code ships any more.
+            foreach (var clip in new[] { s.ExtinguisherPin, s.CallPointPress, s.SprinklerSpray, s.PowerCut, s.ElevatorDing })
+                Assert.IsFalse(clip.name.EndsWith("Synth"), clip.name);
+            // A belongings bait takes the look its label names; unknown labels keep the laptop.
+            var laptop = assets.PrefabFor(Capabilities.BaitBelongings);
+            Assert.AreNotEqual(laptop, assets.PrefabFor(Capabilities.BaitBelongings, "Ba lô của bạn"), "backpack variant");
+            Assert.AreNotEqual(laptop, assets.PrefabFor(Capabilities.BaitBelongings, "Điện thoại"), "phone variant");
+            Assert.AreEqual(laptop, assets.PrefabFor(Capabilities.BaitBelongings, "Laptop của bạn"), "laptop stays");
+            // Material variants: a second look exists for the common keys and the pick is stable per seed.
+            var wood = assets.Materials.Entries.Find(e => e.Key == "floor.wood");
+            Assert.GreaterOrEqual(wood.Variants?.Count ?? 0, 2, "floor.wood variants");
+            Assert.AreEqual(assets.Materials.Get("floor.wood", "rev-a|Parkett"), assets.Materials.Get("floor.wood", "rev-a|Parkett"), "stable pick");
             foreach (var key in new[] { "floor.epoxy", "floor.vinyl", "floor.terrazzo", "floor.rubber", "wall.tile.white", "wall.paint", "metal.stainless" })
                 Assert.IsTrue(assets.Materials.Entries.Exists(e => e.Key == key && e.Material != null), $"material library has no {key}");
         }

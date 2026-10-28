@@ -40,11 +40,27 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             }
 
             library.Entries.Clear();
+            // Source/<key> is the first look, Source/<key>@2, @3… are variants of the same key (same repeat size).
+            var byKey = new SortedDictionary<string, SortedList<int, Material>>(System.StringComparer.Ordinal);
             foreach (var dir in Directory.GetDirectories(SourceDir))
             {
-                var key = Path.GetFileName(dir);
-                var mat = BuildMaterial(key, dir.Replace('\\', '/'));
-                library.Entries.Add(new MaterialLibrary.Entry { Key = key, Material = mat, RepeatMeters = Repeat.TryGetValue(key, out var r) ? r : 1f });
+                var folder = Path.GetFileName(dir);
+                var at = folder.IndexOf('@');
+                var key = at < 0 ? folder : folder[..at];
+                var index = at < 0 ? 1 : int.Parse(folder[(at + 1)..]);
+                var mat = BuildMaterial(key, folder, dir.Replace('\\', '/'));
+                if (!byKey.TryGetValue(key, out var looks))
+                    byKey[key] = looks = new SortedList<int, Material>();
+                looks[index] = mat;
+            }
+
+            foreach (var kv in byKey)
+            {
+                var variants = new List<Material>(kv.Value.Values);
+                library.Entries.Add(new MaterialLibrary.Entry
+                {
+                    Key = kv.Key, Material = variants[0], Variants = variants, RepeatMeters = Repeat.TryGetValue(kv.Key, out var r) ? r : 1f,
+                });
             }
 
             library.Entries.Add(new MaterialLibrary.Entry { Key = "glass.clear", Material = Glass("glass.clear", 0.18f), RepeatMeters = 1f });
@@ -59,7 +75,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             return library;
         }
 
-        private static Material BuildMaterial(string key, string dir)
+        private static Material BuildMaterial(string key, string folder, string dir)
         {
             var color = ConfigureTexture($"{dir}/Color.jpg", TextureImporterType.Default, true);
             var normal = ConfigureTexture($"{dir}/NormalGL.jpg", TextureImporterType.NormalMap, false);
@@ -69,7 +85,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
             var ao = ConfigureTexture($"{dir}/AmbientOcclusion.jpg", TextureImporterType.Default, false);
             var mask = BuildMetallicSmoothness(dir, rough, metal);
 
-            var path = $"{MaterialsDir}/{key}.mat";
+            var path = $"{MaterialsDir}/{folder}.mat";
             var mat = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (mat == null)
             {
