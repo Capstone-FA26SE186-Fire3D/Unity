@@ -309,12 +309,19 @@ namespace Fire3D.Unity.Development
                 yield break;
             }
 
-            var hold = _interaction.Actions[slot].IsHold;
-            _interaction.Press(slot);
-            var until = Time.time + (hold ? _interaction.Actions[slot].Definition.HoldSeconds + 3f : 1f);
+            // Like a player: object actions are tapped on the world tile (a timed one then fills by itself),
+            // held-item actions use the thumb buttons.
+            var action = _interaction.Actions[slot];
+            var tile = action.Source == ActionSource.Target;
+            var hold = action.IsHold;
+            if (tile)
+                _interaction.Tap(slot);
+            else
+                _interaction.Press(slot);
+            var until = Time.time + (hold ? action.Definition.HoldSeconds + 3f : 1f);
             while (!done() && Time.time < until)
                 yield return null;
-            if (hold)
+            if (hold && !tile)
                 _interaction.Release(slot);
             yield return done();
         }

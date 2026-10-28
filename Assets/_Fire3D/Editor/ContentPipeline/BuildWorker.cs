@@ -333,7 +333,8 @@ namespace Fire3D.Unity.Editor.ContentPipeline
                         continue;
                     }
 
-                    var baseMat = library.Get(map.LibraryKey);
+                    // The look varies per building and per IFC material name, the same way on every rebuild.
+                    var baseMat = library.Get(map.LibraryKey, $"{building.RevisionId}|{name}");
                     if (baseMat == null)
                     {
                         unmapped.Add(name);
@@ -342,7 +343,7 @@ namespace Fire3D.Unity.Editor.ContentPipeline
 
                     if (!string.IsNullOrEmpty(map.Tint) && ColorUtility.TryParseHtmlString(map.Tint, out var tint))
                     {
-                        var key = $"{map.LibraryKey}_{map.Tint}";
+                        var key = $"{baseMat.name}_{map.Tint}";
                         if (!tinted.TryGetValue(key, out var variant))
                         {
                             variant = new Material(baseMat) { name = key };

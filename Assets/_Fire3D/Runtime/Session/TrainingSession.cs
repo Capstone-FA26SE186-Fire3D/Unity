@@ -66,6 +66,13 @@ namespace Fire3D.Unity.Session
         public event Action Exited;
 
         /// <summary>Wires the session; call once after the world is built and the player rig exists.</summary>
+        /// <summary>A scenario plays at night when its name or instructions say so; the sky through the windows follows.</summary>
+        private static bool IsNight(ScenarioState scenario)
+        {
+            var text = $"{scenario?.Name} {scenario?.LearnerInstructions}".ToLowerInvariant();
+            return text.Contains("ban đêm") || text.Contains("buổi đêm") || text.Contains("đêm khuya") || text.Contains("night");
+        }
+
         public void Begin(LaunchRequest launch, ScenarioState scenario, BuiltWorld world, IFire3DBridge bridge, RuntimeAssets assets,
             GameObject playerRig, bool autoStart = false)
         {
@@ -77,6 +84,7 @@ namespace Fire3D.Unity.Session
             _log = new SessionEventLog(() => _elapsed, launch.ResumeFromSequence);
             _ctx = new GameContext(world.Simulation, _log, launch.Mode, scenario, () => _elapsed);
             GameContext.Install(_ctx);
+            GameAudio.Bind(assets);
 
             _player = playerRig.GetComponent<PlayerMotor>();
             _vitals = playerRig.GetComponent<PlayerVitals>();
@@ -85,6 +93,15 @@ namespace Fire3D.Unity.Session
             _ctx.Player = _player;
             _ctx.Vitals = _vitals;
             _player.Teleport(world.SpawnPosition, world.SpawnYaw);
+            _ctx.Assets = assets;
+            var sky = assets != null ? (IsNight(scenario) && assets.SkyNight != null ? assets.SkyNight : assets.Sky) : null;
+            if (sky != null)
+            {
+                // The street seen through windows; ambient light stays the baked/flat one.
+                RenderSettings.skybox = sky;
+                if (Camera.main != null)
+                    Camera.main.clearFlags = CameraClearFlags.Skybox;
+            }
             _player.InputEnabled = false;
 
             foreach (var exit in world.Exits)
@@ -123,6 +140,13 @@ namespace Fire3D.Unity.Session
                 IsFirstPerson = () => _player.CameraRig != null && _player.CameraRig.FirstPerson,
             }, _interaction, _vitals, _player, _input);
             _ctx.Message += _hud.Toast;
+            _ctx.Message += (_, tone) =>
+            {
+                if (tone == MessageTone.Success)
+                    GameAudio.Ui(GameAudio.Sounds?.UiSuccess);
+                else if (tone == MessageTone.Danger)
+                    GameAudio.Ui(GameAudio.Sounds?.UiError);
+            };
 
             foreach (var w in world.Warnings)
                 Debug.LogWarning($"[Fire3D] {w}");
@@ -267,6 +291,9 @@ namespace Fire3D.Unity.Session
                         break;
                     case SimulationEventKind.DetectorTriggered:
                         _log.EmitObject(EventTypes.DetectorTriggered, id);
+                        foreach (var it in _world.Interactables)
+                            if (it != null && it.ObjectId == id)
+                                GameAudio.Loop(GameAudio.Sounds?.DetectorBeep, it.gameObject, 0.6f, 14f)?.Play();
                         break;
                     case SimulationEventKind.AlarmRaised:
                         _ctx.Show("Chuông báo cháy đang kêu!", MessageTone.Warning);
